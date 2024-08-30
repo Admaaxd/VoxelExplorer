@@ -1,0 +1,8 @@
+.vs/
+x64/
+VoxelExplorer/
+VoxelExplorer/x64/
+VoxelExplorer.sln
+VoxelExplorer.vcxproj
+VoxelExplorer.vcxproj.filters
+VoxelExplorer.vcxproj.user
