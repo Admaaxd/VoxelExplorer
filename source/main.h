@@ -1,8 +1,8 @@
 #pragma once
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 #include <stb/stb_image.h>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -12,10 +12,17 @@
 #include <glm/gtx/string_cast.hpp>
 #include <iostream>
 
+#include "shader.h"
+#include "Camera.h"
+#include "Chunk.h"
+
 class main
 {
 public:
+	static void initializeGLFW(GLFWwindow*& window);
+	static void initializeGLAD();
 	static void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
+	static void updateFPS();
 	static void processInput(GLFWwindow* window);
-
+	static void mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn);
 };
