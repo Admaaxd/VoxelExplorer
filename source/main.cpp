@@ -16,6 +16,9 @@ GLdouble lastTime = glfwGetTime();
 uint8_t nbFrames = 0;
 GLfloat fps = 0;
 
+bool isGUIEnabled = false;
+bool escapeKeyPressedLastFrame = false;
+
 int main()
 {
 	GLFWwindow* window;
@@ -36,6 +39,8 @@ int main()
 	glFrontFace(GL_CW);
 	glEnable(GL_DEPTH_TEST);
 
+	main::initializeImGui(window);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		main::updateFPS();
@@ -47,6 +52,8 @@ int main()
 		glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 235.0f);
 		glm::mat4 model = glm::mat4(1.0f);
 
+		glm::vec3 playerPosition = camera.getPosition();
+
 		glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -57,9 +64,12 @@ int main()
 
 		chunk.Draw();
 
+		if (isGUIEnabled) main::renderImGui(window, playerPosition);
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+	main::cleanupImGui();
 	mainShader.Delete();
 
 	glfwTerminate();
@@ -113,43 +123,105 @@ void main::updateFPS() {
 	lastFrame = currentTime;
 }
 
+void main::initializeImGui(GLFWwindow* window) {
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+	ImGui::StyleColorsDark();
+}
+
+void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition) {
+	glDisable(GL_DEPTH_TEST);
+
+	// Start ImGui frame
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	ImGui::Begin("Menu");
+
+	ImGui::Text("FPS: %.1f", fps); // FPS counter
+
+	ImGui::Text("Player Position: (%.2f, %.2f, %.2f)", playerPosition.x, playerPosition.y, playerPosition.z); // Player Position in the world
+
+	if (ImGui::Button("Exit Game")) glfwSetWindowShouldClose(window, true);  // Close the game
+
+	ImGui::End();
+
+	// Render ImGui
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+	glEnable(GL_DEPTH_TEST);
+}
+
+void main::cleanupImGui() {
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+}
+
 void main::processInput(GLFWwindow* window)
 {
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+	// Check for Escape key press
+	bool isEscapePressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+	if (isEscapePressed && !escapeKeyPressedLastFrame) {
+		// Toggle GUI visibility
+		isGUIEnabled = !isGUIEnabled;
 
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		camera.setIsMovingForward(true);
-	else
-		camera.setIsMovingForward(false);
+		// Enable or disable the cursor based on GUI state
+		glfwSetInputMode(window, GLFW_CURSOR, isGUIEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		camera.setIsMovingBackward(true);
-	else
-		camera.setIsMovingBackward(false);
+		if (!isGUIEnabled) {
+			// Reset mouse position when GUI is disabled
+			GLdouble xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+			lastX = static_cast<GLfloat>(xpos);
+			lastY = static_cast<GLfloat>(ypos);
+		}
+	}
+	escapeKeyPressedLastFrame = isEscapePressed;
 
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		camera.setIsMovingLeft(true);
-	else
-		camera.setIsMovingLeft(false);
+	if (!isGUIEnabled) {
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			camera.setIsMovingForward(true);
+		else
+			camera.setIsMovingForward(false);
 
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		camera.setIsMovingRight(true);
-	else
-		camera.setIsMovingRight(false);
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			camera.setIsMovingBackward(true);
+		else
+			camera.setIsMovingBackward(false);
 
-	if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-		camera.setIsMovingUp(true);
-	else
-		camera.setIsMovingUp(false);
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			camera.setIsMovingLeft(true);
+		else
+			camera.setIsMovingLeft(false);
 
-	if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-		camera.setIsMovingDown(true);
-	else
-		camera.setIsMovingDown(false);
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			camera.setIsMovingRight(true);
+		else
+			camera.setIsMovingRight(false);
+
+		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+			camera.setIsMovingUp(true);
+		else
+			camera.setIsMovingUp(false);
+
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+			camera.setIsMovingDown(true);
+		else
+			camera.setIsMovingDown(false);
+	}
 }
 
 void main::mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn)
 {
+	if (isGUIEnabled) {
+		return;
+	}
+
 	GLfloat xpos = static_cast<GLfloat>(xposIn);
 	GLfloat ypos = static_cast<GLfloat>(yposIn);
 

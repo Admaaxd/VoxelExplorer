@@ -23,6 +23,9 @@ public:
 	static void initializeGLAD();
 	static void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
 	static void updateFPS();
+	static void initializeImGui(GLFWwindow* window);
+	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition);
+	static void cleanupImGui();
 	static void processInput(GLFWwindow* window);
 	static void mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn);
 };
