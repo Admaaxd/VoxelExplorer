@@ -14,7 +14,7 @@
 
 #include "shader.h"
 #include "Camera.h"
-#include "Chunk.h"
+#include "World.h"
 
 class main
 {

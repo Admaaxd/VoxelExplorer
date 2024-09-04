@@ -31,8 +31,7 @@ int main()
 
 	shader mainShader("shaders/main.vs", "shaders/main.fs");
 
-	TextureManager textureManager;
-	Chunk chunk(0, 0, textureManager);
+	World world;
 
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -53,6 +52,8 @@ int main()
 		glm::mat4 model = glm::mat4(1.0f);
 
 		glm::vec3 playerPosition = camera.getPosition();
+		world.updatePlayerPosition(playerPosition);
+		world.processChunkLoadQueue(1);
 
 		glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -62,7 +63,7 @@ int main()
 		mainShader.setMat4("view", view);
 		mainShader.setMat4("projection", projection);
 
-		chunk.Draw();
+		world.Draw();
 
 		if (isGUIEnabled) main::renderImGui(window, playerPosition);
 
