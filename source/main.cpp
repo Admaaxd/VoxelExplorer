@@ -20,6 +20,11 @@ bool isGUIEnabled = false;
 bool escapeKeyPressedLastFrame = false;
 bool isOutlineEnabled = false;
 
+bool isCrosshairEnabled = true;
+glm::vec3 crosshairColor(1.0f, 1.0f, 1.0f);
+GLfloat crosshairSize = 1.0f;
+
+
 int main()
 {
 	GLFWwindow* window;
@@ -32,6 +37,9 @@ int main()
 
 	shader mainShader("shaders/main.vs", "shaders/main.fs");
 	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
+	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
+	Crosshair crosshair;
+	crosshair.initialize();
 
 	World world;
 
@@ -66,6 +74,8 @@ int main()
 		mainShader.setMat4("projection", projection);
 
 		world.Draw();
+
+		if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
 		
 		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world);
 
@@ -77,6 +87,7 @@ int main()
 	main::cleanupImGui();
 	mainShader.Delete();
 	meshingShader.Delete();
+	crosshair.Delete();
 
 	glfwTerminate();
 	return 0;
@@ -146,6 +157,7 @@ void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::ma
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
 	glDisable(GL_POLYGON_OFFSET_LINE); // Disable polygon offset for lines
+	glLineWidth(1.0f);
 }
 
 void main::initializeImGui(GLFWwindow* window) {
@@ -170,7 +182,16 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition) {
 
 	ImGui::Text("Player Position: (%.2f, %.2f, %.2f)", playerPosition.x, playerPosition.y, playerPosition.z); // Player Position in the world
 
+	ImGui::Separator();
 	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled); // Checkbox for enabling/disabling outline
+
+	// Crosshair customization
+	ImGui::Separator();
+	if (ImGui::CollapsingHeader("Crosshair settings", ImGuiTreeNodeFlags_None)) {
+		ImGui::Checkbox("Enable Crosshair", &isCrosshairEnabled);
+		ImGui::ColorEdit3("Crosshair Color", (GLfloat*)&crosshairColor); // Color picker for crosshair
+		ImGui::SliderFloat("Crosshair Size", &crosshairSize, 0.1f, 3.0f); // Slider for crosshair size
+	}
 
 	if (ImGui::Button("Exit Game")) glfwSetWindowShouldClose(window, true);  // Close the game
 

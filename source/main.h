@@ -15,6 +15,7 @@
 #include "shader.h"
 #include "Camera.h"
 #include "World.h"
+#include "Crosshair.h"
 
 class main
 {
