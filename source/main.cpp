@@ -18,6 +18,7 @@ GLfloat fps = 0;
 
 bool isGUIEnabled = false;
 bool escapeKeyPressedLastFrame = false;
+bool isOutlineEnabled = false;
 
 int main()
 {
@@ -30,6 +31,7 @@ int main()
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	shader mainShader("shaders/main.vs", "shaders/main.fs");
+	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
 
 	World world;
 
@@ -64,6 +66,8 @@ int main()
 		mainShader.setMat4("projection", projection);
 
 		world.Draw();
+		
+		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world);
 
 		if (isGUIEnabled) main::renderImGui(window, playerPosition);
 
@@ -72,6 +76,7 @@ int main()
 	}
 	main::cleanupImGui();
 	mainShader.Delete();
+	meshingShader.Delete();
 
 	glfwTerminate();
 	return 0;
@@ -124,6 +129,25 @@ void main::updateFPS() {
 	lastFrame = currentTime;
 }
 
+void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world)
+{
+	meshingShader.use();
+	glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.00f)); // Slightly scale up for outline effect
+	meshingShader.setMat4("view", view);
+	meshingShader.setMat4("projection", projection);
+	meshingShader.setMat4("model", outlineModel);
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Render in wireframe mode
+	glLineWidth(3.0f); // Set outline width
+	glEnable(GL_POLYGON_OFFSET_LINE); // Enable polygon offset for lines
+	glPolygonOffset(-0.5, -0.5);
+
+	world.Draw();
+
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
+	glDisable(GL_POLYGON_OFFSET_LINE); // Disable polygon offset for lines
+}
+
 void main::initializeImGui(GLFWwindow* window) {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -145,6 +169,8 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition) {
 	ImGui::Text("FPS: %.1f", fps); // FPS counter
 
 	ImGui::Text("Player Position: (%.2f, %.2f, %.2f)", playerPosition.x, playerPosition.y, playerPosition.z); // Player Position in the world
+
+	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled); // Checkbox for enabling/disabling outline
 
 	if (ImGui::Button("Exit Game")) glfwSetWindowShouldClose(window, true);  // Close the game
 

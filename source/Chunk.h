@@ -4,9 +4,9 @@
 #include "FastNoiseLite.h"
 #include "TextureManager.h"
 
-constexpr GLint CHUNK_SIZE = 16;
-constexpr GLint CHUNK_HEIGHT = 128;
-constexpr GLint WATERLEVEL = 62;
+constexpr uint8_t CHUNK_SIZE = 16;
+constexpr uint8_t CHUNK_HEIGHT = 128;
+constexpr uint8_t WATERLEVEL = 62;
 
 class Chunk
 {
