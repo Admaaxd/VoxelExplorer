@@ -1,7 +1,8 @@
 #include "Chunk.h"
+#include "World.h"
 
-Chunk::Chunk(int16_t x, int16_t z, TextureManager& textureManager)
-    : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID())
+Chunk::Chunk(int16_t x, int16_t z, TextureManager& textureManager, World* world)
+    : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world)
 {
     setupChunk();
 }
@@ -124,8 +125,26 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
     auto isExposed = [&](GLint x, GLint y, GLint z, GLint dx, GLint dy, GLint dz) {
         GLint nx = x + dx, ny = y + dy, nz = z + dz;
-        if (nx < 0 || ny < 0 || nz < 0 || nx >= CHUNK_SIZE || nz >= CHUNK_SIZE || ny >= CHUNK_HEIGHT) return true;
-        return blockTypes[getIndex(nx, ny, nz)] == -1;
+
+        if (nx >= 0 && ny >= 0 && nz >= 0 && nx < CHUNK_SIZE && nz < CHUNK_SIZE && ny < CHUNK_HEIGHT) {
+            return blockTypes[getIndex(nx, ny, nz)] == -1;
+        }
+
+        GLint neighborChunkX = chunkX, neighborChunkZ = chunkZ;
+
+        if (nx < 0) neighborChunkX -= 1;
+        else if (nx >= CHUNK_SIZE) neighborChunkX += 1;
+
+        if (nz < 0) neighborChunkZ -= 1;
+        else if (nz >= CHUNK_SIZE) neighborChunkZ += 1;
+
+        if (Chunk* neighborChunk = world->getChunk(neighborChunkX, neighborChunkZ)) {
+            nx = (nx + CHUNK_SIZE) % CHUNK_SIZE;
+            nz = (nz + CHUNK_SIZE) % CHUNK_SIZE;
+            return neighborChunk->getBlockType(nx, ny, nz) == -1;
+        }
+
+        return true;
     };
 
     auto getTextureLayer = [&](int8_t blockType, int8_t face) {
@@ -328,6 +347,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             }
         }
     }
+}
+
+GLint Chunk::getBlockType(uint8_t x, uint8_t y, uint8_t z) const {
+    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
+        return -1;
+    }
+
+    int16_t index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+    return blockTypes[index];
 }
 
 void Chunk::Draw()

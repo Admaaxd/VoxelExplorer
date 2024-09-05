@@ -85,6 +85,17 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 	}
 }
 
+Chunk* World::getChunk(GLint x, GLint z)
+{
+	ChunkCoord coord = { x, z };
+	auto it = chunks.find(coord);
+	if (it != chunks.end())
+	{
+		return it->second;
+	}
+	return nullptr;
+}
+
 void World::queueChunkLoad(GLint x, GLint z)
 {
 	ChunkCoord coord = { x, z };
@@ -96,7 +107,7 @@ void World::loadChunk(GLint x, GLint z)
 	ChunkCoord coord = { x, z };
 	if (chunks.find(coord) == chunks.end())
 	{
-		chunks[coord] = new Chunk(x, z, textureManager);
+		chunks[coord] = new Chunk(x, z, textureManager, this);
 	}
 }
 

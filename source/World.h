@@ -12,6 +12,7 @@ public:
 	void Draw();
 	void updatePlayerPosition(const glm::vec3& position);
 	void processChunkLoadQueue(uint8_t maxChunksToLoad);
+	Chunk* getChunk(GLint x, GLint z);
 
 	struct ChunkCoord {
 		GLint x, z;
