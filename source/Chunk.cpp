@@ -358,6 +358,20 @@ GLint Chunk::getBlockType(uint8_t x, uint8_t y, uint8_t z) const {
     return blockTypes[index];
 }
 
+const std::vector<GLint>& Chunk::getBlockTypes() const
+{
+    return blockTypes;
+}
+
+void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
+{
+    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
+        return;
+    }
+    GLint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+    blockTypes[index] = type;
+}
+
 void Chunk::Draw()
 {
     glBindVertexArray(VAO);

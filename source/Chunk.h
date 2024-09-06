@@ -22,6 +22,8 @@ public:
 
 	void generateMesh(const std::vector<GLint>& blockTypes);
 	GLint getBlockType(uint8_t x, uint8_t y, uint8_t z) const;
+	const std::vector<GLint>& getBlockTypes() const;
+	void setBlockType(GLint x, GLint y, GLint z, int8_t type);
 
 	GLfloat chunkX, chunkZ;
 	std::vector<GLint> blockTypes;

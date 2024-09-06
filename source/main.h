@@ -15,7 +15,9 @@
 #include "shader.h"
 #include "Camera.h"
 #include "World.h"
+#include "Player.h"
 #include "Crosshair.h"
+#include "blockOutline.h"
 
 class main
 {
@@ -26,8 +28,9 @@ public:
 	static void updateFPS();
 	static void initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world);
 	static void initializeImGui(GLFWwindow* window);
-	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition);
+	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player);
 	static void cleanupImGui();
 	static void processInput(GLFWwindow* window);
 	static void mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn);
+	static void mouseButtonCallback(GLFWwindow* window, GLint button, GLint action, GLint mods);
 };

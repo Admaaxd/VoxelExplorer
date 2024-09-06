@@ -96,6 +96,23 @@ Chunk* World::getChunk(GLint x, GLint z)
 	return nullptr;
 }
 
+void World::setBlock(GLint x, GLint y, GLint z, int8_t type) {
+	GLint chunkX = (x >= 0) ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
+	GLint chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
+
+	GLint localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+	GLint localY = y;
+	GLint localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+
+	if (Chunk* chunk = getChunk(chunkX, chunkZ)) {
+		chunk->setBlockType(localX, localY, localZ, type);
+		chunk->generateMesh(chunk->getBlockTypes());
+		chunk->updateOpenGLBuffers();
+	}
+
+	updateNeighboringChunksOnBlockChange(chunkX, chunkZ, localX, localY, localZ);
+}
+
 void World::queueChunkLoad(GLint x, GLint z)
 {
 	ChunkCoord coord = { x, z };
@@ -126,6 +143,33 @@ bool World::isChunkLoaded(GLint x, GLint z) const
 {
 	ChunkCoord coord = { x, z };
 	return chunks.find(coord) != chunks.end();
+}
+
+void World::updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ) {
+	if (localX == 0) {
+		if (Chunk* neighborChunk = getChunk(chunkX - 1, chunkZ)) {
+			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
+			neighborChunk->updateOpenGLBuffers();
+		}
+	}
+	if (localX == CHUNK_SIZE - 1) {
+		if (Chunk* neighborChunk = getChunk(chunkX + 1, chunkZ)) {
+			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
+			neighborChunk->updateOpenGLBuffers();
+		}
+	}
+	if (localZ == 0) {
+		if (Chunk* neighborChunk = getChunk(chunkX, chunkZ - 1)) {
+			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
+			neighborChunk->updateOpenGLBuffers();
+		}
+	}
+	if (localZ == CHUNK_SIZE - 1) {
+		if (Chunk* neighborChunk = getChunk(chunkX, chunkZ + 1)) {
+			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
+			neighborChunk->updateOpenGLBuffers();
+		}
+	}
 }
 
 bool World::isWithinRenderDistance(GLint x, GLint z) const

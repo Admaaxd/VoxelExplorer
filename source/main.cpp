@@ -24,6 +24,8 @@ bool isCrosshairEnabled = true;
 glm::vec3 crosshairColor(1.0f, 1.0f, 1.0f);
 GLfloat crosshairSize = 1.0f;
 
+glm::vec3 hitPos, hitNormal;
+GLint blockType;
 
 int main()
 {
@@ -40,8 +42,12 @@ int main()
 	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
 	Crosshair crosshair;
 	crosshair.initialize();
+	BlockOutline blockOutline;
 
 	World world;
+	Player player(camera, world);
+	glfwSetWindowUserPointer(window, &player);
+	glfwSetMouseButtonCallback(window, main::mouseButtonCallback);
 
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
@@ -76,10 +82,18 @@ int main()
 		world.Draw();
 
 		if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
+
+		if (player.rayCast(hitPos, hitNormal, blockType))
+		{
+			glm::mat4 model = glm::translate(glm::mat4(1.0f), hitPos);
+
+			glm::mat4 MVP = projection * view * model;
+			blockOutline.render(MVP);
+		}
 		
 		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world);
 
-		if (isGUIEnabled) main::renderImGui(window, playerPosition);
+		if (isGUIEnabled) main::renderImGui(window, playerPosition, player);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -168,7 +182,7 @@ void main::initializeImGui(GLFWwindow* window) {
 	ImGui::StyleColorsDark();
 }
 
-void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition) {
+void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player) {
 	glDisable(GL_DEPTH_TEST);
 
 	// Start ImGui frame
@@ -181,6 +195,17 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition) {
 	ImGui::Text("FPS: %.1f", fps); // FPS counter
 
 	ImGui::Text("Player Position: (%.2f, %.2f, %.2f)", playerPosition.x, playerPosition.y, playerPosition.z); // Player Position in the world
+
+	ImGui::Separator();
+	ImGui::Text("Select Block Type:");
+	static const char* blockTypeNames[] = {
+		"Dirt", "Stone", "Grass", "Sand", "Water",
+	};
+
+	GLint selectedBlockType = player.getSelectedBlockType();
+	if (ImGui::Combo("Block Type", &selectedBlockType, blockTypeNames, IM_ARRAYSIZE(blockTypeNames))) {
+		player.setSelectedBlockType(selectedBlockType);
+	}
 
 	ImGui::Separator();
 	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled); // Checkbox for enabling/disabling outline
@@ -287,4 +312,13 @@ void main::mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn)
 	lastY = ypos;
 
 	camera.updateCameraOrientation(camera.getYaw() + xoffset * 0.1f, camera.getPitch() + yoffset * 0.1f);
+}
+
+void main::mouseButtonCallback(GLFWwindow* window, GLint button, GLint action, GLint mods)
+{
+	Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
+
+	if (player) {
+		player->handleMouseInput(button, action, isGUIEnabled);
+	}
 }

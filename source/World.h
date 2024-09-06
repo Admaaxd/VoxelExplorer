@@ -14,6 +14,8 @@ public:
 	void processChunkLoadQueue(uint8_t maxChunksToLoad);
 	Chunk* getChunk(GLint x, GLint z);
 
+	void setBlock(GLint x, GLint y, GLint z, int8_t type);
+
 	struct ChunkCoord {
 		GLint x, z;
 		bool operator==(const ChunkCoord& other) const {
@@ -39,6 +41,7 @@ private:
 	void unloadChunk(GLint x, GLint z);
 	bool isWithinRenderDistance(GLint x, GLint z) const;
 	bool isChunkLoaded(GLint x, GLint z) const;
+	void updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
 
 	std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash> chunks;
 	std::priority_queue<ChunkCoord, std::vector<ChunkCoord>, ChunkCoordComparator> chunkLoadQueue;
