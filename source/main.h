@@ -10,6 +10,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
+#include <windows.h>
+#include <psapi.h>
 #include <iostream>
 
 #include "shader.h"
@@ -27,10 +29,13 @@ public:
 	static void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
 	static void updateFPS();
 	static void initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world);
+	static void renderBlockOutline(const Player& player, const glm::mat4& projection, const glm::mat4& view, BlockOutline& blockOutline);
 	static void initializeImGui(GLFWwindow* window);
 	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player);
 	static void cleanupImGui();
+	static void cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair);
 	static void processInput(GLFWwindow* window);
 	static void mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn);
 	static void mouseButtonCallback(GLFWwindow* window, GLint button, GLint action, GLint mods);
+	static size_t getCurrentMemoryUsage();
 };

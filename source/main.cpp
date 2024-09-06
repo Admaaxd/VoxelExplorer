@@ -27,6 +27,9 @@ GLfloat crosshairSize = 1.0f;
 glm::vec3 hitPos, hitNormal;
 GLint blockType;
 
+std::vector<GLfloat> memoryUsageHistory;
+constexpr int8_t MEMORY_HISTORY_SIZE = 100;
+
 int main()
 {
 	GLFWwindow* window;
@@ -83,13 +86,7 @@ int main()
 
 		if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
 
-		if (player.rayCast(hitPos, hitNormal, blockType))
-		{
-			glm::mat4 model = glm::translate(glm::mat4(1.0f), hitPos);
-
-			glm::mat4 MVP = projection * view * model;
-			blockOutline.render(MVP);
-		}
+		main::renderBlockOutline(player, projection, view, blockOutline);
 		
 		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world);
 
@@ -99,12 +96,17 @@ int main()
 		glfwPollEvents();
 	}
 	main::cleanupImGui();
-	mainShader.Delete();
-	meshingShader.Delete();
-	crosshair.Delete();
+	main::cleanup(mainShader, meshingShader, crosshair);
 
 	glfwTerminate();
 	return 0;
+}
+
+void main::cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair)
+{
+	mainShader.Delete();
+	meshingShader.Delete();
+	crosshair.Delete();
 }
 
 void main::initializeGLFW(GLFWwindow*& window)
@@ -152,6 +154,18 @@ void main::updateFPS() {
 	}
 	deltaTime = currentTime - lastFrame;
 	lastFrame = currentTime;
+}
+
+void main::renderBlockOutline(const Player& player, const glm::mat4& projection, const glm::mat4& view, BlockOutline& blockOutline) {
+	glm::vec3 hitPos, hitNormal;
+	GLint blockType;
+
+	if (player.rayCast(hitPos, hitNormal, blockType)) {
+		glm::mat4 model = glm::translate(glm::mat4(1.0f), hitPos);
+		glm::mat4 MVP = projection * view * model;
+
+		blockOutline.render(MVP);
+	}
 }
 
 void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world)
@@ -216,6 +230,25 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 		ImGui::Checkbox("Enable Crosshair", &isCrosshairEnabled);
 		ImGui::ColorEdit3("Crosshair Color", (GLfloat*)&crosshairColor); // Color picker for crosshair
 		ImGui::SliderFloat("Crosshair Size", &crosshairSize, 0.1f, 3.0f); // Slider for crosshair size
+	}
+
+	//// Memory Usage Graph ////
+	ImGui::Separator();
+	if (ImGui::CollapsingHeader("Memory Usage", ImGuiTreeNodeFlags_DefaultOpen)) {
+		// Get current memory usage in MB
+		size_t memoryUsage = main::getCurrentMemoryUsage() / (1024 * 1024);
+
+		// Add current memory usage to history
+		if (memoryUsageHistory.size() >= MEMORY_HISTORY_SIZE) {
+			memoryUsageHistory.erase(memoryUsageHistory.begin());
+		}
+		memoryUsageHistory.push_back(static_cast<GLfloat>(memoryUsage));
+
+		// Display the memory usage graph
+		ImGui::PlotLines("", memoryUsageHistory.data(), memoryUsageHistory.size(), 0, nullptr, FLT_MAX, FLT_MAX, ImVec2(0, 100));
+
+		// Display current memory usage value
+		ImGui::Text("Current Memory Usage: %zu MB", memoryUsage);
 	}
 
 	if (ImGui::Button("Exit Game")) glfwSetWindowShouldClose(window, true);  // Close the game
@@ -321,4 +354,11 @@ void main::mouseButtonCallback(GLFWwindow* window, GLint button, GLint action, G
 	if (player) {
 		player->handleMouseInput(button, action, isGUIEnabled);
 	}
+}
+
+size_t main::getCurrentMemoryUsage()
+{
+	PROCESS_MEMORY_COUNTERS_EX pmc;
+	GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+	return pmc.PrivateUsage;
 }
