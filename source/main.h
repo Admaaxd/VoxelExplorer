@@ -35,6 +35,7 @@ public:
 	static void cleanupImGui();
 	static void cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair);
 	static void processInput(GLFWwindow* window);
+	static void updateMovementState(GLFWwindow* window, GLint key, Direction direction);
 	static void mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn);
 	static void mouseButtonCallback(GLFWwindow* window, GLint button, GLint action, GLint mods);
 	static size_t getCurrentMemoryUsage();

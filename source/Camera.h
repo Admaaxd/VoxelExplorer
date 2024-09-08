@@ -8,55 +8,61 @@
 
 #include <vector>
 #include <array>
+#include <unordered_map>
 
-struct MovementDirection {
-	bool isMoving = false;
-	glm::vec3 direction = glm::vec3(0);
+enum class Direction {
+    FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN
 };
 
 class Camera {
-	glm::mat4 view = calcView();
-	glm::vec3 position = { 0, 90, 0 };
-	glm::vec3 cameraUp = { 0, 1, 0 };
+    glm::mat4 view;
+    glm::vec3 position = { 0, 90, 0 };
+    glm::vec3 cameraUp = { 0, 1, 0 };
+    glm::vec3 lookDirection = { 1, 0, 0 }; // Default forward
 
-	MovementDirection forward = { false, {1, 0, 0} };
-	MovementDirection backward = { false, {-1, 0, 0} };
-	MovementDirection left = { false, {0, 0, 1} };
-	MovementDirection right = { false, {0, 0, -1} };
-	MovementDirection up = { false, {0, 1, 0} };
-	MovementDirection down = { false, {0, -1, 0} };
-	glm::vec3 lookDirection = forward.direction;
+    std::unordered_map<Direction, glm::vec3> directionVectors = {
+        {Direction::FORWARD, {1, 0, 0}},
+        {Direction::BACKWARD, {-1, 0, 0}},
+        {Direction::LEFT, {0, 0, 1}},
+        {Direction::RIGHT, {0, 0, -1}},
+        {Direction::UP, {0, 1, 0}},
+        {Direction::DOWN, {0, -1, 0}},
+    };
 
-	GLfloat yaw = 0;
-	GLfloat pitch = 0.5;
+    std::unordered_map<Direction, bool> movementStates = {
+        {Direction::FORWARD, false},
+        {Direction::BACKWARD, false},
+        {Direction::LEFT, false},
+        {Direction::RIGHT, false},
+        {Direction::UP, false},
+        {Direction::DOWN, false}
+    };
 
-	glm::mat4 calcView() const;
-	const glm::mat4& updateView();
+    GLfloat yaw = 0.0f;
+    GLfloat pitch = 0.5f;
+    GLfloat movementSpeed = 25.0f;
+
+    glm::mat4 calcView() const;
 
 public:
-	GLfloat movementSpeed = 15.0f;
+    Camera();
 
-	const glm::mat4& lookAt(glm::vec3 eye, glm::vec3 center);
-	void update(GLfloat deltaTime);
+    const glm::mat4& updateView();
+    const glm::mat4& lookAt(glm::vec3 eye, glm::vec3 center);
+    const glm::mat4& setPosition(glm::vec3 eye);
 
-	void updateCameraDirection(glm::vec3 newForward);
-	void updateCameraOrientation(GLfloat yaw, GLfloat pitch);
+    void updateCameraDirection(const glm::vec3& newForward);
+    void updateCameraOrientation(GLfloat newYaw, GLfloat newPitch);
+    void update(GLfloat deltaTime);
 
-	[[nodiscard]] const glm::mat4& getViewMatrix() const { return view; }
+    [[nodiscard]] const glm::mat4& getViewMatrix() const { return view; }
+    [[nodiscard]] GLfloat getYaw() const { return yaw; }
+    [[nodiscard]] GLfloat getPitch() const { return pitch; }
+    [[nodiscard]] glm::vec3 getLookDirection() const { return lookDirection; }
+    [[nodiscard]] glm::vec3 getPosition() const { return position; }
 
-	[[nodiscard]] GLfloat getYaw() const { return yaw; };
-	[[nodiscard]] GLfloat getPitch() const { return pitch; };
-
-	[[nodiscard]] glm::vec3 getLookDirection() const;
-	[[nodiscard]] glm::vec3 getPosition() const;
-	const glm::mat4& setPosition(glm::vec3 eye);
-
-	void setIsMovingForward(bool isMoving) { forward.isMoving = isMoving; };
-	void setIsMovingBackward(bool isMoving) { backward.isMoving = isMoving; };
-	void setIsMovingLeft(bool isMoving) { left.isMoving = isMoving; };
-	void setIsMovingRight(bool isMoving) { right.isMoving = isMoving; };
-	void setIsMovingUp(bool isMoving) { up.isMoving = isMoving; };
-	void setIsMovingDown(bool isMoving) { down.isMoving = isMoving; };
-	glm::vec3 getMoveDirection();
+    void setMovementState(Direction dir, bool isMoving);
+    glm::vec3 getMoveDirection() const;
 };
-#endif
+
+#endif // CAMERA_H

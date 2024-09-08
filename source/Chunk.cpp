@@ -80,7 +80,11 @@ void Chunk::generateChunk()
                     continue;
                 }
 
-                if (y == terrainHeight)
+                if (y >= WATERLEVEL - 2 && y <= terrainHeight && terrainHeight <= WATERLEVEL + 2)
+                {
+                    blockTypes[index] = 3; // Sand near water
+                }
+                else if (y == terrainHeight)
                 {
                     blockTypes[index] = 2; // Grass top
                 }
@@ -90,7 +94,7 @@ void Chunk::generateChunk()
                 }
                 else if (y < terrainHeight - 4 && y > WATERLEVEL - 5)
                 {
-                    blockTypes[index] = 1; // Stone with dirt (above water level)
+                    blockTypes[index] = 1; // Stone layer
                 }
                 else
                 {

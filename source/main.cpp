@@ -290,36 +290,19 @@ void main::processInput(GLFWwindow* window)
 	escapeKeyPressedLastFrame = isEscapePressed;
 
 	if (!isGUIEnabled) {
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			camera.setIsMovingForward(true);
-		else
-			camera.setIsMovingForward(false);
-
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			camera.setIsMovingBackward(true);
-		else
-			camera.setIsMovingBackward(false);
-
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			camera.setIsMovingLeft(true);
-		else
-			camera.setIsMovingLeft(false);
-
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			camera.setIsMovingRight(true);
-		else
-			camera.setIsMovingRight(false);
-
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-			camera.setIsMovingUp(true);
-		else
-			camera.setIsMovingUp(false);
-
-		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-			camera.setIsMovingDown(true);
-		else
-			camera.setIsMovingDown(false);
+		// Use a helper function to update movement states
+		updateMovementState(window, GLFW_KEY_W, Direction::FORWARD);
+		updateMovementState(window, GLFW_KEY_S, Direction::BACKWARD);
+		updateMovementState(window, GLFW_KEY_A, Direction::LEFT);
+		updateMovementState(window, GLFW_KEY_D, Direction::RIGHT);
+		updateMovementState(window, GLFW_KEY_SPACE, Direction::UP);
+		updateMovementState(window, GLFW_KEY_LEFT_SHIFT, Direction::DOWN);
 	}
+}
+
+void main::updateMovementState(GLFWwindow* window, GLint key, Direction direction) {
+	bool isKeyPressed = glfwGetKey(window, key) == GLFW_PRESS;
+	camera.setMovementState(direction, isKeyPressed);
 }
 
 void main::mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn)
