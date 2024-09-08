@@ -1,6 +1,6 @@
 #include "World.h"
 
-World::World() : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager(), threadPool(std::thread::hardware_concurrency()) {
+World::World(const Frustum& frustum) : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager(), threadPool(std::thread::hardware_concurrency()) {
 	std::srand(static_cast<GLuint>(std::time(0)));
 
 	for (GLint x = -renderDistance; x <= renderDistance; ++x)
@@ -21,12 +21,13 @@ World::~World()
 	}
 }
 
-void World::Draw()
-{
+void World::Draw(const Frustum& frustum) {
 	for (auto& pair : chunks) {
 		Chunk* chunk = pair.second;
-		chunk->Draw();
-		chunk->updateOpenGLBuffers();
+		if (chunk->isInFrustum(frustum)) {
+			chunk->Draw();
+			chunk->updateOpenGLBuffers();
+		}
 	}
 }
 
@@ -195,6 +196,15 @@ void World::updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLi
 			neighborChunk->updateOpenGLBuffers();
 		}
 	}
+}
+
+bool World::isChunkInFrustum(GLint chunkX, GLint chunkZ, const Frustum& frustum) const
+{
+	// Calculate the chunk's AABB
+	glm::vec3 minBounds(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
+	glm::vec3 maxBounds(chunkX * CHUNK_SIZE + CHUNK_SIZE, CHUNK_HEIGHT, chunkZ * CHUNK_SIZE + CHUNK_SIZE);
+
+	return frustum.isBoxInFrustum(minBounds, maxBounds);
 }
 
 bool World::isWithinRenderDistance(GLint x, GLint z) const

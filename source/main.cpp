@@ -47,7 +47,8 @@ int main()
 	crosshair.initialize();
 	BlockOutline blockOutline;
 
-	World world;
+	Frustum frustum;
+	World world(frustum);
 	Player player(camera, world);
 	glfwSetWindowUserPointer(window, &player);
 	glfwSetMouseButtonCallback(window, main::mouseButtonCallback);
@@ -69,6 +70,7 @@ int main()
 		glm::mat4 view = camera.getViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
 		glm::mat4 model = glm::mat4(1.0f);
+		frustum.update(projection * view);
 
 		glm::vec3 playerPosition = camera.getPosition();
 		world.updatePlayerPosition(playerPosition);
@@ -82,15 +84,15 @@ int main()
 		mainShader.setMat4("view", view);
 		mainShader.setMat4("projection", projection);
 
-		world.Draw();
+		world.Draw(frustum);
 
 		if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
 
 		main::renderBlockOutline(player, projection, view, blockOutline);
 		
-		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world);
+		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world, frustum);
 
-		if (isGUIEnabled) main::renderImGui(window, playerPosition, player);
+		if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -168,7 +170,7 @@ void main::renderBlockOutline(const Player& player, const glm::mat4& projection,
 	}
 }
 
-void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world)
+void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world, Frustum& frustum)
 {
 	meshingShader.use();
 	glm::mat4 outlineModel = glm::scale(model, glm::vec3(1.00f)); // Slightly scale up for outline effect
@@ -181,7 +183,7 @@ void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::ma
 	glEnable(GL_POLYGON_OFFSET_LINE); // Enable polygon offset for lines
 	glPolygonOffset(-0.5, -0.5);
 
-	world.Draw();
+	world.Draw(frustum);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
 	glDisable(GL_POLYGON_OFFSET_LINE); // Disable polygon offset for lines
@@ -196,7 +198,7 @@ void main::initializeImGui(GLFWwindow* window) {
 	ImGui::StyleColorsDark();
 }
 
-void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player) {
+void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum) {
 	glDisable(GL_DEPTH_TEST);
 
 	// Start ImGui frame
@@ -230,6 +232,58 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 		ImGui::Checkbox("Enable Crosshair", &isCrosshairEnabled);
 		ImGui::ColorEdit3("Crosshair Color", (GLfloat*)&crosshairColor); // Color picker for crosshair
 		ImGui::SliderFloat("Crosshair Size", &crosshairSize, 0.1f, 3.0f); // Slider for crosshair size
+	}
+
+	//// Visualize world and frustum ////
+	ImGui::Separator();
+	if (ImGui::CollapsingHeader("World Overview", ImGuiTreeNodeFlags_DefaultOpen)) {
+		// Enable scrolling within the ImGui window
+		ImGui::BeginChild("CanvasRegion", ImVec2(300, 300), true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoMove);
+		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+		ImVec2 canvasSize = ImGui::GetContentRegionAvail();  // Size of the canvas available within the child window
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		// Draw the background
+		drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), IM_COL32(50, 50, 50, 255));
+
+		// Scale factor for the world
+		GLfloat scale = 0.55f;
+
+		glm::vec3 camPos = camera.getPosition();
+
+		// Center the camera on the canvas
+		ImVec2 canvasCenter = ImVec2(canvasPos.x + canvasSize.x / 2, canvasPos.y + canvasSize.y / 2);
+
+		// Draw chunks relative to the camera position, centering the camera on the canvas
+		for (const auto& pair : world.getChunks()) {
+			const Chunk* chunk = pair.second;
+
+			// Calculate chunk top-down coordinates
+			ImVec2 chunkPosMin = ImVec2(
+				canvasCenter.x + (chunk->getMinBounds().x - camPos.x) * scale,
+				canvasCenter.y + (chunk->getMinBounds().z - camPos.z) * scale
+			);
+			ImVec2 chunkPosMax = ImVec2(
+				canvasCenter.x + (chunk->getMaxBounds().x - camPos.x) * scale,
+				canvasCenter.y + (chunk->getMaxBounds().z - camPos.z) * scale
+			);
+
+			// Draw the chunk (use different colors for culled and visible chunks)
+			bool inFrustum = chunk->isInFrustum(frustum);
+			ImU32 fillColor = inFrustum ? IM_COL32(0, 255, 0, 150) : IM_COL32(255, 0, 0, 150);
+			ImU32 outlineColor = IM_COL32(0, 0, 0, 255); // Black outline
+
+			// Draw the filled chunk
+			drawList->AddRectFilled(chunkPosMin, chunkPosMax, fillColor);
+
+			// Draw the outline for the chunk (on top of the fill)
+			drawList->AddRect(chunkPosMin, chunkPosMax, outlineColor, 0.0f, 0, 1.0f);
+		}
+
+		// Draw the camera position in the center of the canvas
+		drawList->AddCircleFilled(canvasCenter, 5.0f, IM_COL32(255, 255, 255, 255));
+
+		ImGui::EndChild();
 	}
 
 	//// Memory Usage Graph ////

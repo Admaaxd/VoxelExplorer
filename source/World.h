@@ -8,9 +8,9 @@
 class World
 {
 public:
-	World();
+	World(const Frustum& frustum);
 	~World();
-	void Draw();
+	void Draw(const Frustum& frustum);
 	void updatePlayerPosition(const glm::vec3& position);
 	void processChunkLoadQueue(uint8_t maxChunksToLoad);
 	Chunk* getChunk(GLint x, GLint z);
@@ -30,6 +30,8 @@ public:
 		}
 	};
 
+	const std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash>& getChunks() const { return chunks; }
+
 private:
 	struct ChunkCoordComparator {
 		ChunkCoordComparator(const World& world) : world(world) {}
@@ -43,6 +45,7 @@ private:
 	bool isWithinRenderDistance(GLint x, GLint z) const;
 	bool isChunkLoaded(GLint x, GLint z) const;
 	void updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
+	bool isChunkInFrustum(GLint chunkX, GLint chunkZ, const Frustum& frustum) const;
 
 	std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash> chunks;
 	std::priority_queue<ChunkCoord, std::vector<ChunkCoord>, ChunkCoordComparator> chunkLoadQueue;

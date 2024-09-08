@@ -3,6 +3,7 @@
 #include "Block.h"
 #include "FastNoiseLite.h"
 #include "TextureManager.h"
+#include "Frustum.h"
 
 class World;
 
@@ -25,17 +26,25 @@ public:
 	const std::vector<GLint>& getBlockTypes() const;
 	void setBlockType(GLint x, GLint y, GLint z, int8_t type);
 
+	bool isInFrustum(const Frustum& frustum) const;
+	glm::vec3 getMinBounds() const { return minBounds; }
+	glm::vec3 getMaxBounds() const { return maxBounds; }
+
 	GLfloat chunkX, chunkZ;
 	std::vector<GLint> blockTypes;
 
 private:
 	void generateChunk();
+	void calculateBounds();
 
 	GLuint textureID;
 	FastNoiseLite noiseGenerator;
 	std::vector<GLfloat> vertices;
 	std::vector<GLuint> indices;
 	GLuint VAO, VBO, EBO;
+
+	glm::vec3 minBounds;
+	glm::vec3 maxBounds;
 
 	std::vector<std::vector<std::vector<GLint>>> chunkData;
 

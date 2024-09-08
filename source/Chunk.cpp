@@ -18,7 +18,7 @@ void Chunk::setupChunk()
 {
     generateChunk();
     generateMesh(blockTypes);
-    updateOpenGLBuffers();
+    calculateBounds();
 }
 
 void Chunk::generateChunk()
@@ -410,4 +410,13 @@ void Chunk::updateOpenGLBuffers()
     glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
+}
+
+void Chunk::calculateBounds() {
+    minBounds = glm::vec3(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
+    maxBounds = glm::vec3((chunkX + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunkZ + 1) * CHUNK_SIZE);
+}
+
+bool Chunk::isInFrustum(const Frustum& frustum) const {
+    return frustum.isBoxInFrustum(minBounds, maxBounds);
 }
