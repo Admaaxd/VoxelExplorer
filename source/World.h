@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Chunk.h"
+#include "ThreadPool.h"
 #include <unordered_map>
 #include <queue>
 
@@ -48,6 +49,10 @@ private:
 	GLint playerChunkX, playerChunkZ;
 	TextureManager textureManager;
 
-	const uint8_t renderDistance = 8;
+	std::unordered_map<ChunkCoord, std::future<Chunk*>, ChunkCoordHash> pendingChunks;
+	std::mutex chunksMutex;
+	ThreadPool threadPool;
+
+	const uint8_t renderDistance = 15;
 
 };

@@ -1,6 +1,6 @@
 #include "World.h"
 
-World::World() : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager() {
+World::World() : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager(), threadPool(std::thread::hardware_concurrency()) {
 	std::srand(static_cast<GLuint>(std::time(0)));
 
 	for (GLint x = -renderDistance; x <= renderDistance; ++x)
@@ -26,6 +26,7 @@ void World::Draw()
 	for (auto& pair : chunks) {
 		Chunk* chunk = pair.second;
 		chunk->Draw();
+		chunk->updateOpenGLBuffers();
 	}
 }
 
@@ -75,19 +76,35 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 					tempUnloadList.push_back(loadedCoord);
 				}
 			}
-
-			for (const auto& coord : tempUnloadList)
-			{
-				unloadChunk(coord.x, coord.z);
-			}
-			tempUnloadList.clear();
 		}
+	}
+
+	for (auto it = pendingChunks.begin(); it != pendingChunks.end(); )
+	{
+		if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+		{
+			Chunk* chunk = it->second.get();
+			{
+				std::lock_guard<std::mutex> lock(chunksMutex);
+				chunks[it->first] = chunk;
+			}
+			it = pendingChunks.erase(it);
+		}
+		else {
+			++it;
+		}
+	}
+
+	// Unload chunks marked for unloading
+	for (const auto& coord : tempUnloadList) {
+		unloadChunk(coord.x, coord.z);
 	}
 }
 
 Chunk* World::getChunk(GLint x, GLint z)
 {
 	ChunkCoord coord = { x, z };
+	std::lock_guard<std::mutex> lock(chunksMutex);
 	auto it = chunks.find(coord);
 	if (it != chunks.end())
 	{
@@ -119,18 +136,26 @@ void World::queueChunkLoad(GLint x, GLint z)
 	chunkLoadQueue.push(coord);
 }
 
-void World::loadChunk(GLint x, GLint z)
-{
+void World::loadChunk(GLint x, GLint z) {
 	ChunkCoord coord = { x, z };
-	if (chunks.find(coord) == chunks.end())
-	{
-		chunks[coord] = new Chunk(x, z, textureManager, this);
+
+	if (chunks.find(coord) == chunks.end() && pendingChunks.find(coord) == pendingChunks.end()) {
+		auto future = threadPool.enqueue([this, coord, x, z]() -> Chunk* {
+			Chunk* chunk = new Chunk(x, z, textureManager, this);
+
+			std::lock_guard<std::mutex> lock(chunksMutex);
+			chunks[coord] = chunk;
+			return chunk;
+		});
+
+		pendingChunks[coord] = std::move(future);
 	}
 }
 
 void World::unloadChunk(GLint x, GLint z)
 {
 	ChunkCoord coord = { x, z };
+	std::lock_guard<std::mutex> lock(chunksMutex);
 	auto it = chunks.find(coord);
 	if (it != chunks.end())
 	{
