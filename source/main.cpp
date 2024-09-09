@@ -74,7 +74,7 @@ int main()
 
 		glm::vec3 playerPosition = camera.getPosition();
 		world.updatePlayerPosition(playerPosition);
-		world.processChunkLoadQueue(2);
+		world.processChunkLoadQueue(1);
 
 		glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -247,7 +247,7 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 		drawList->AddRectFilled(canvasPos, ImVec2(canvasPos.x + canvasSize.x, canvasPos.y + canvasSize.y), IM_COL32(50, 50, 50, 255));
 
 		// Scale factor for the world
-		GLfloat scale = 0.55f;
+		GLfloat scale = 0.52f;
 
 		glm::vec3 camPos = camera.getPosition();
 

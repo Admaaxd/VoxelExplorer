@@ -64,7 +64,7 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 		ChunkCoord coord = chunkLoadQueue.top();
 		chunkLoadQueue.pop();
 
-		if (!isChunkLoaded(coord.x, coord.z))
+		if (isWithinRenderDistance(coord.x, coord.z) && !isChunkLoaded(coord.x, coord.z))
 		{
 			loadChunk(coord.x, coord.z);
 			++chunksLoaded;
