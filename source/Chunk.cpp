@@ -1,7 +1,7 @@
 #include "Chunk.h"
 #include "World.h"
 
-Chunk::Chunk(int16_t x, int16_t z, TextureManager& textureManager, World* world)
+Chunk::Chunk(GLint x, GLint z, TextureManager& textureManager, World* world)
     : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world)
 {
     setupChunk();
@@ -165,11 +165,11 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         }
     };
 
-    auto processFace = [&](int16_t x, int16_t y, int16_t z, int8_t face) {
-        int8_t extentX = 1;
-        int8_t extentY = 1;
-        int8_t blockType = blockTypes[getIndex(x, y, z)];
-        int8_t textureLayer = getTextureLayer(blockType, face);
+    auto processFace = [&](GLint x, GLint y, GLint z, int8_t face) {
+        GLint extentX = 1;
+        GLint extentY = 1;
+        GLint blockType = blockTypes[getIndex(x, y, z)];
+        GLint textureLayer = getTextureLayer(blockType, face);
 
         switch (face) {
         case 0: // Back face
@@ -182,7 +182,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x + extentX, y + dy, z)] != blockType ||
                         processed[x + extentX][y + dy][z].back ||
                         !isExposed(x + extentX, y + dy, z, 0, 0, -1)) {
@@ -191,7 +191,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     }
                 }
                 if (!canExtend) break;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     processed[x + extentX][y + dy][z].back = true;
                 }
                 extentX++;
@@ -209,7 +209,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x + extentX, y + dy, z)] != blockType ||
                         processed[x + extentX][y + dy][z].front ||
                         !isExposed(x + extentX, y + dy, z, 0, 0, 1)) {
@@ -218,7 +218,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     }
                 }
                 if (!canExtend) break;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     processed[x + extentX][y + dy][z].front = true;
                 }
                 extentX++;
@@ -236,7 +236,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             extentX = 1;
             while (z + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x, y + dy, z + extentX)] != blockType ||
                         processed[x][y + dy][z + extentX].left ||
                         !isExposed(x, y + dy, z + extentX, -1, 0, 0)) {
@@ -245,7 +245,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     }
                 }
                 if (!canExtend) break;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     processed[x][y + dy][z + extentX].left = true;
                 }
                 extentX++;
@@ -263,7 +263,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             extentX = 1;
             while (z + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x, y + dy, z + extentX)] != blockType ||
                         processed[x][y + dy][z + extentX].right ||
                         !isExposed(x, y + dy, z + extentX, 1, 0, 0)) {
@@ -272,7 +272,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     }
                 }
                 if (!canExtend) break;
-                for (int16_t dy = 0; dy < extentY; ++dy) {
+                for (GLint dy = 0; dy < extentY; ++dy) {
                     processed[x][y + dy][z + extentX].right = true;
                 }
                 extentX++;
@@ -290,7 +290,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (int16_t dz = 0; dz < extentY; ++dz) {
+                for (GLint dz = 0; dz < extentY; ++dz) {
                     if (blockTypes[getIndex(x + extentX, y, z + dz)] != blockType ||
                         processed[x + extentX][y][z + dz].top ||
                         !isExposed(x + extentX, y, z + dz, 0, 1, 0)) {
@@ -299,7 +299,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     }
                 }
                 if (!canExtend) break;
-                for (int16_t dz = 0; dz < extentY; ++dz) {
+                for (GLint dz = 0; dz < extentY; ++dz) {
                     processed[x + extentX][y][z + dz].top = true;
                 }
                 extentX++;
@@ -317,7 +317,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (int16_t dz = 0; dz < extentY; ++dz) {
+                for (GLint dz = 0; dz < extentY; ++dz) {
                     if (blockTypes[getIndex(x + extentX, y, z + dz)] != blockType ||
                         processed[x + extentX][y][z + dz].bottom ||
                         !isExposed(x + extentX, y, z + dz, 0, -1, 0)) {
@@ -326,7 +326,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     }
                 }
                 if (!canExtend) break;
-                for (int16_t dz = 0; dz < extentY; ++dz) {
+                for (GLint dz = 0; dz < extentY; ++dz) {
                     processed[x + extentX][y][z + dz].bottom = true;
                 }
                 extentX++;
@@ -336,9 +336,9 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         }
         };
 
-    for (int16_t x = 0; x < CHUNK_SIZE; ++x) {
-        for (int16_t y = 0; y < CHUNK_HEIGHT; ++y) {
-            for (int16_t z = 0; z < CHUNK_SIZE; ++z) {
+    for (GLint x = 0; x < CHUNK_SIZE; ++x) {
+        for (GLint y = 0; y < CHUNK_HEIGHT; ++y) {
+            for (GLint z = 0; z < CHUNK_SIZE; ++z) {
                 GLint index = getIndex(x, y, z);
                 if (blockTypes[index] == -1) continue;
 
@@ -353,12 +353,12 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     }
 }
 
-GLint Chunk::getBlockType(uint8_t x, uint8_t y, uint8_t z) const {
+GLint Chunk::getBlockType(GLint x, GLint y, GLint z) const {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
         return -1;
     }
 
-    int16_t index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+    GLint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
     return blockTypes[index];
 }
 

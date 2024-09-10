@@ -14,7 +14,7 @@ constexpr uint8_t WATERLEVEL = 62;
 class Chunk
 {
 public:
-	Chunk(int16_t x, int16_t z, TextureManager& textureManager, World* world);
+	Chunk(GLint x, GLint z, TextureManager& textureManager, World* world);
 	~Chunk();
 
 	void Draw();
@@ -22,7 +22,7 @@ public:
 	void updateOpenGLBuffers();
 
 	void generateMesh(const std::vector<GLint>& blockTypes);
-	GLint getBlockType(uint8_t x, uint8_t y, uint8_t z) const;
+	GLint getBlockType(GLint x, GLint y, GLint z) const;
 	const std::vector<GLint>& getBlockTypes() const;
 	void setBlockType(GLint x, GLint y, GLint z, int8_t type);
 
