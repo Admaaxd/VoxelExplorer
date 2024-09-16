@@ -20,6 +20,7 @@
 #include "Player.h"
 #include "Crosshair.h"
 #include "blockOutline.h"
+#include "SkyboxRenderer.h"
 
 class main
 {

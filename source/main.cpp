@@ -30,6 +30,16 @@ GLint blockType;
 std::vector<GLfloat> memoryUsageHistory;
 constexpr int8_t MEMORY_HISTORY_SIZE = 100;
 
+std::vector<std::string> faces
+{
+	"skybox/right.jpg",
+	"skybox/left.jpg",
+	"skybox/top.bmp",
+	"skybox/bottom.jpg",
+	"skybox/front.jpg",
+	"skybox/back.jpg"
+};
+
 int main()
 {
 	GLFWwindow* window;
@@ -43,6 +53,7 @@ int main()
 	shader mainShader("shaders/main.vs", "shaders/main.fs");
 	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
 	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
+	SkyboxRenderer skybox(faces);
 	Crosshair crosshair;
 	crosshair.initialize();
 	BlockOutline blockOutline;
@@ -91,6 +102,9 @@ int main()
 		main::renderBlockOutline(player, projection, view, blockOutline);
 		
 		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world, frustum);
+
+		view = glm::mat4(glm::mat3(camera.getViewMatrix()));
+		skybox.render(view, projection);
 
 		if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum);
 

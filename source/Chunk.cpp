@@ -4,7 +4,12 @@
 Chunk::Chunk(GLint x, GLint z, TextureManager& textureManager, World* world)
     : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world)
 {
+    minBounds = glm::vec3(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
+    maxBounds = glm::vec3((chunkX + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunkZ + 1) * CHUNK_SIZE);
+
     setupChunk();
+
+    calculateBounds();
 }
 
 Chunk::~Chunk()
@@ -18,7 +23,6 @@ void Chunk::setupChunk()
 {
     generateChunk();
     generateMesh(blockTypes);
-    calculateBounds();
 }
 
 void Chunk::generateChunk()
