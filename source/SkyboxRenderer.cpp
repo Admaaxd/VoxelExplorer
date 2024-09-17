@@ -101,7 +101,16 @@ void SkyboxRenderer::render(const glm::mat4& view, const glm::mat4& projection) 
     glDepthFunc(GL_LEQUAL);
     skyboxShader.use();
 
+    GLfloat time = glfwGetTime();
+    GLfloat rotationSpeed = 0.2f;
+    GLfloat rotationAngle = glm::radians(rotationSpeed * time);
+
+    glm::vec3 rotationAxis(0.0f, 1.0f, 0.0f);
+
+    glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), rotationAngle, rotationAxis);
+
     glm::mat4 skyboxView = glm::mat4(glm::mat3(view));
+    skyboxView = skyboxView * rotation;
     skyboxShader.setMat4("view", skyboxView);
     skyboxShader.setMat4("projection", projection);
 
