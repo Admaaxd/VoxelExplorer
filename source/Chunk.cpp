@@ -84,33 +84,37 @@ void Chunk::generateChunk()
                     {
                         blockTypes[index] = 4; // Water
                     }
-                    continue;
-                }
-
-                if (y >= WATERLEVEL - 2 && y <= terrainHeight && terrainHeight <= WATERLEVEL + 2)
-                {
-                    blockTypes[index] = 3; // Sand near water
-                }
-                else if (y == terrainHeight)
-                {
-                    blockTypes[index] = 2; // Grass top
-                }
-                else if (y >= terrainHeight - 4)
-                {
-                    blockTypes[index] = 0; // Dirt layer
-                }
-                else if (y < terrainHeight - 4 && y > WATERLEVEL - 5)
-                {
-                    blockTypes[index] = 1; // Stone layer
+                    else
+                    {
+                        blockTypes[index] = -1; // Air block above water level
+                    }
                 }
                 else
                 {
-                    blockTypes[index] = 1; // Stone layer
+                    if (y >= WATERLEVEL - 2 && y <= terrainHeight && terrainHeight <= WATERLEVEL + 2)
+                    {
+                        blockTypes[index] = 3; // Sand near water
+                    }
+                    else if (y == terrainHeight)
+                    {
+                        blockTypes[index] = 2; // Grass top
+                    }
+                    else if (y >= terrainHeight - 4)
+                    {
+                        blockTypes[index] = 0; // Dirt layer
+                    }
+                    else
+                    {
+                        blockTypes[index] = 1; // Stone layer
+                    }
                 }
 
                 if (isSunlit) {
                     sunlitBlocks[index] = true;
-                    isSunlit = false;
+
+                    if (blockTypes[index] != -1 && blockTypes[index] != 4) {
+                        isSunlit = false;
+                    }
                 }
                 else {
                     sunlitBlocks[index] = false;
