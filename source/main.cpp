@@ -53,7 +53,7 @@ int main()
 	shader mainShader("shaders/main.vs", "shaders/main.fs");
 	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
 	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
-	SkyboxRenderer skybox(faces);
+	SkyboxRenderer skybox(faces, "skybox/sun.png");
 	Crosshair crosshair;
 	crosshair.initialize();
 	BlockOutline blockOutline;
@@ -90,10 +90,16 @@ int main()
 		glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		glm::vec3 sunPosition = skybox.getSunPosition();
+		glm::vec3 lightDirection = glm::normalize(-sunPosition);
+
 		mainShader.use();
 		mainShader.setMat4("model", model);
 		mainShader.setMat4("view", view);
 		mainShader.setMat4("projection", projection);
+		mainShader.setVec3("lightDirection", lightDirection);
+		mainShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 0.95f));
+		mainShader.setVec3("viewPos", camera.getPosition());
 
 		world.Draw(frustum);
 
@@ -104,7 +110,8 @@ int main()
 		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world, frustum);
 
 		view = glm::mat4(glm::mat3(camera.getViewMatrix()));
-		skybox.render(view, projection);
+		skybox.renderSkybox(view, projection);
+		skybox.renderSun(view, projection);
 
 		if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum);
 

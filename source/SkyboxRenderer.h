@@ -13,18 +13,28 @@
 
 class SkyboxRenderer {
 public:
-    SkyboxRenderer(const std::vector<std::string>& faces);
+    SkyboxRenderer(const std::vector<std::string>& faces, const std::string& sunTexturePath);
     ~SkyboxRenderer();
 
-    void render(const glm::mat4& view, const glm::mat4& projection);
+    void renderSkybox(const glm::mat4& view, const glm::mat4& projection);
+    void renderSun(const glm::mat4& view, const glm::mat4& projection);
+    glm::vec3 getSunPosition() const;
 
 private:
     GLuint skyboxVAO, skyboxVBO;
     GLuint cubemapTexture;
     shader skyboxShader;
 
+    GLuint sunVAO, sunVBO;
+    GLuint sunTexture;
+    shader sunShader;
+    glm::vec3 sunPosition;
+
     GLuint loadCubemap(const std::vector<std::string>& faces);
     void setupSkybox();
+
+    GLuint loadTexture(const std::string& path);
+    void setupSun();
 
 };
 
