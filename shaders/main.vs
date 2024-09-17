@@ -3,11 +3,13 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTex;
 layout (location = 2) in float aTexLayer;
 layout (location = 3) in vec3 aNormal;
+layout (location = 4) in float aSunlit;
 
 out vec2 texCoord;
 out float texLayer;
 out vec3 FragPos;
 out vec3 Normal;
+out float sunlit;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -21,6 +23,6 @@ void main()
     texCoord = aTex;
     texLayer = aTexLayer;
     FragPos = worldPos.xyz;
-
     Normal = mat3(transpose(inverse(model))) * aNormal;
+    sunlit = aSunlit;
 }

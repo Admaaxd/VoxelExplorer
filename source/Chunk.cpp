@@ -45,13 +45,16 @@ void Chunk::generateChunk()
 
     blockTypes.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, -1);
 
+    sunlitBlocks.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, false);
+
     uint8_t caveMinHeight = CHUNK_HEIGHT / 64;
     uint8_t surfaceBuffer = CHUNK_HEIGHT / 10;
 
-    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
+    for (GLint x = 0; x < CHUNK_SIZE; ++x)
     {
-        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
+        for (GLint z = 0; z < CHUNK_SIZE; ++z)
         {
+            bool isSunlit = true;
             GLfloat worldX = static_cast<GLfloat>(chunkX * CHUNK_SIZE + x);
             GLfloat worldZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
 
@@ -61,7 +64,7 @@ void Chunk::generateChunk()
 
             uint8_t terrainHeight = static_cast<uint8_t>((baseHeight + elevation * 0.5f + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
 
-            for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
+            for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y)
             {
                 GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
@@ -103,6 +106,14 @@ void Chunk::generateChunk()
                 else
                 {
                     blockTypes[index] = 1; // Stone layer
+                }
+
+                if (isSunlit) {
+                    sunlitBlocks[index] = true;
+                    isSunlit = false;
+                }
+                else {
+                    sunlitBlocks[index] = false;
                 }
             }
         }
@@ -169,7 +180,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         }
     };
 
-    auto processFace = [&](GLint x, GLint y, GLint z, int8_t face) {
+    auto processFace = [&](GLint x, GLint y, GLint z, int8_t face, bool isSunlit) {
         GLint extentX = 1;
         GLint extentY = 1;
         GLint blockType = blockTypes[getIndex(x, y, z)];
@@ -200,7 +211,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addBackFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer);
+            Block::addBackFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
             break;
 
         case 1: // Front face
@@ -227,7 +238,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addFrontFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer);
+            Block::addFrontFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
             break;
 
         case 2: // Left face
@@ -254,7 +265,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addLeftFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer);
+            Block::addLeftFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
             break;
 
         case 3: // Right face
@@ -281,7 +292,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addRightFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer);
+            Block::addRightFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
             break;
 
         case 4: // Top face
@@ -308,7 +319,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addTopFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer);
+            Block::addTopFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
             break;
 
         case 5: // Bottom face
@@ -335,7 +346,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addBottomFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer);
+            Block::addBottomFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
             break;
         }
         };
@@ -344,15 +355,40 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         for (GLint y = 0; y < CHUNK_HEIGHT; ++y) {
             for (GLint z = 0; z < CHUNK_SIZE; ++z) {
                 GLint index = getIndex(x, y, z);
+                bool isSunlit = sunlitBlocks[index];
                 if (blockTypes[index] == -1) continue;
 
-                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1)) processFace(x, y, z, 0);
-                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1)) processFace(x, y, z, 1);
-                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2);
-                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0)) processFace(x, y, z, 3);
-                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0)) processFace(x, y, z, 4);
-                if (!processed[x][y][z].bottom && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5);
+                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1)) processFace(x, y, z, 0, isSunlit);
+                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1)) processFace(x, y, z, 1, isSunlit);
+                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2, isSunlit);
+                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0)) processFace(x, y, z, 3, isSunlit);
+                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0)) processFace(x, y, z, 4, isSunlit);
+                if (!processed[x][y][z].bottom && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5, isSunlit);
             }
+        }
+    }
+}
+
+void Chunk::updateSunlightColumn(GLint localX, GLint localZ)
+{
+    bool isSunlit = true;
+    for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y)
+    {
+        GLint index = localX * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + localZ;
+
+        if (blockTypes[index] == -1)
+        {
+            continue;
+        }
+
+        if (isSunlit)
+        {
+            sunlitBlocks[index] = true;
+            isSunlit = false;
+        }
+        else
+        {
+            sunlitBlocks[index] = false;
         }
     }
 }
@@ -378,6 +414,7 @@ void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
     }
     GLint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
     blockTypes[index] = type;
+    updateSunlightColumn(x, z);
 }
 
 void Chunk::Draw()
@@ -406,14 +443,25 @@ void Chunk::updateOpenGLBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), (void*)0);
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+
+    // Texture coordinate attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+
+    // Texture layer attribute
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
+    
+    // Normal attribute
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 9 * sizeof(GLfloat), (void*)(6 * sizeof(float)));
+
+    // Sunlit flag attribute
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(4);
 
     glBindVertexArray(0);
 }
