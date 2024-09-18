@@ -20,7 +20,6 @@ public:
 	void Draw();
 	void setupChunk();
 	void updateOpenGLBuffers();
-	void updateSunlightColumn(GLint localX, GLint localZ);
 
 	void generateMesh(const std::vector<GLint>& blockTypes);
 	GLint getBlockType(GLint x, GLint y, GLint z) const;
@@ -49,7 +48,7 @@ private:
 
 	std::vector<std::vector<std::vector<GLint>>> chunkData;
 
-	std::vector<bool> sunlitBlocks;
+	std::vector<uint8_t> lightLevels;
 
 	TextureManager& textureManager;
 

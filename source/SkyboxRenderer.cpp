@@ -1,7 +1,8 @@
 #include "SkyboxRenderer.h"
 
 SkyboxRenderer::SkyboxRenderer(const std::vector<std::string>& faces, const std::string& sunTexturePath)
-    : skyboxShader("shaders/skybox.vs", "shaders/skybox.fs"), sunShader("shaders/sun.vs", "shaders/sun.fs")
+    : skyboxShader("shaders/skybox.vs", "shaders/skybox.fs"), sunShader("shaders/sun.vs", "shaders/sun.fs"),
+    orbitCenter(glm::vec3(0.0f, 0.0f, 0.0f)), orbitRadius(300.0f), orbitSpeed(0.01f), currentAngle(0.0f)
 {
     cubemapTexture = loadCubemap(faces);
     setupSkybox();
@@ -9,7 +10,7 @@ SkyboxRenderer::SkyboxRenderer(const std::vector<std::string>& faces, const std:
     sunTexture = loadTexture(sunTexturePath);
     setupSun();
 
-    sunPosition = glm::vec3(100.0f, 150.0f, -100.0f);
+    sunPosition = glm::vec3(100.0f, 100.0f, -100.0f);
 }
 
 SkyboxRenderer::~SkyboxRenderer() {
@@ -20,6 +21,14 @@ SkyboxRenderer::~SkyboxRenderer() {
     glDeleteVertexArrays(1, &sunVAO);
     glDeleteBuffers(1, &sunVBO);
     glDeleteTextures(1, &sunTexture);
+}
+
+void SkyboxRenderer::updateSunPosition(GLfloat deltaTime) {
+    currentAngle += orbitSpeed * deltaTime;
+
+    sunPosition.x = orbitCenter.x;
+    sunPosition.y = orbitCenter.y + orbitRadius * sin(currentAngle);
+    sunPosition.z = orbitCenter.z + orbitRadius * cos(currentAngle);
 }
 
 void SkyboxRenderer::setupSkybox() {

@@ -174,28 +174,24 @@ bool World::isChunkLoaded(GLint x, GLint z) const
 void World::updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ) {
 	if (localX == 0) {
 		if (Chunk* neighborChunk = getChunk(chunkX - 1, chunkZ)) {
-			neighborChunk->updateSunlightColumn(CHUNK_SIZE - 1, localZ);
 			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
 			neighborChunk->updateOpenGLBuffers();
 		}
 	}
 	if (localX == CHUNK_SIZE - 1) {
 		if (Chunk* neighborChunk = getChunk(chunkX + 1, chunkZ)) {
-			neighborChunk->updateSunlightColumn(0, localZ);
 			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
 			neighborChunk->updateOpenGLBuffers();
 		}
 	}
 	if (localZ == 0) {
 		if (Chunk* neighborChunk = getChunk(chunkX, chunkZ - 1)) {
-			neighborChunk->updateSunlightColumn(0, localZ);
 			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
 			neighborChunk->updateOpenGLBuffers();
 		}
 	}
 	if (localZ == CHUNK_SIZE - 1) {
 		if (Chunk* neighborChunk = getChunk(chunkX, chunkZ + 1)) {
-			neighborChunk->updateSunlightColumn(0, localZ);
 			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
 			neighborChunk->updateOpenGLBuffers();
 		}

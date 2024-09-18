@@ -19,6 +19,7 @@ public:
     void renderSkybox(const glm::mat4& view, const glm::mat4& projection);
     void renderSun(const glm::mat4& view, const glm::mat4& projection);
     glm::vec3 getSunPosition() const;
+    void updateSunPosition(GLfloat deltaTime);
 
 private:
     GLuint skyboxVAO, skyboxVBO;
@@ -29,6 +30,11 @@ private:
     GLuint sunTexture;
     shader sunShader;
     glm::vec3 sunPosition;
+
+    glm::vec3 orbitCenter;
+    GLfloat orbitRadius;
+    GLfloat orbitSpeed;
+    GLfloat currentAngle;
 
     GLuint loadCubemap(const std::vector<std::string>& faces);
     void setupSkybox();

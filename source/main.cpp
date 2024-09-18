@@ -77,15 +77,16 @@ int main()
 
 		main::processInput(window);
 		camera.update(deltaTime);
+		skybox.updateSunPosition(deltaTime);
 
 		glm::mat4 view = camera.getViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
 		glm::mat4 model = glm::mat4(1.0f);
 		frustum.update(projection * view);
-
+		
 		glm::vec3 playerPosition = camera.getPosition();
 		world.updatePlayerPosition(playerPosition);
-		world.processChunkLoadQueue(1);
+		/*if (!isGUIEnabled)*/ world.processChunkLoadQueue(1);
 
 		glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

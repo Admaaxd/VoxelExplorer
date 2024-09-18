@@ -45,16 +45,13 @@ void Chunk::generateChunk()
 
     blockTypes.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, -1);
 
-    sunlitBlocks.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, false);
-
     uint8_t caveMinHeight = CHUNK_HEIGHT / 64;
     uint8_t surfaceBuffer = CHUNK_HEIGHT / 10;
 
-    for (GLint x = 0; x < CHUNK_SIZE; ++x)
+    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
     {
-        for (GLint z = 0; z < CHUNK_SIZE; ++z)
+        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
         {
-            bool isSunlit = true;
             GLfloat worldX = static_cast<GLfloat>(chunkX * CHUNK_SIZE + x);
             GLfloat worldZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
 
@@ -64,7 +61,7 @@ void Chunk::generateChunk()
 
             uint8_t terrainHeight = static_cast<uint8_t>((baseHeight + elevation * 0.5f + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
 
-            for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y)
+            for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
                 GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
@@ -84,40 +81,54 @@ void Chunk::generateChunk()
                     {
                         blockTypes[index] = 4; // Water
                     }
-                    else
-                    {
-                        blockTypes[index] = -1; // Air block above water level
-                    }
+                    continue;
+                }
+
+                if (y >= WATERLEVEL - 2 && y <= terrainHeight && terrainHeight <= WATERLEVEL + 2)
+                {
+                    blockTypes[index] = 3; // Sand near water
+                }
+                else if (y == terrainHeight)
+                {
+                    blockTypes[index] = 2; // Grass top
+                }
+                else if (y >= terrainHeight - 4)
+                {
+                    blockTypes[index] = 0; // Dirt layer
+                }
+                else if (y < terrainHeight - 4 && y > WATERLEVEL - 5)
+                {
+                    blockTypes[index] = 1; // Stone layer
                 }
                 else
                 {
-                    if (y >= WATERLEVEL - 2 && y <= terrainHeight && terrainHeight <= WATERLEVEL + 2)
-                    {
-                        blockTypes[index] = 3; // Sand near water
-                    }
-                    else if (y == terrainHeight)
-                    {
-                        blockTypes[index] = 2; // Grass top
-                    }
-                    else if (y >= terrainHeight - 4)
-                    {
-                        blockTypes[index] = 0; // Dirt layer
-                    }
-                    else
-                    {
-                        blockTypes[index] = 1; // Stone layer
-                    }
+                    blockTypes[index] = 1; // Stone layer
                 }
+            }
+        }
+    }
 
-                if (isSunlit) {
-                    sunlitBlocks[index] = true;
+    lightLevels.resize(blockTypes.size(), 0);
 
-                    if (blockTypes[index] != -1 && blockTypes[index] != 4) {
-                        isSunlit = false;
-                    }
+    // Calculate light levels
+    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
+    {
+        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
+        {
+            uint8_t lightLevel = 15; // Maximum light level
+
+            for (int y = CHUNK_HEIGHT - 1; y >= 0; --y)
+            {
+                GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+
+                if (blockTypes[index] == -1) // Air block
+                {
+                    lightLevels[index] = lightLevel;
                 }
-                else {
-                    sunlitBlocks[index] = false;
+                else // Solid block
+                {
+                    lightLevels[index] = lightLevel;
+                    lightLevel = 0; // Light doesn't penetrate solid blocks
                 }
             }
         }
@@ -184,11 +195,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         }
     };
 
-    auto processFace = [&](GLint x, GLint y, GLint z, int8_t face, bool isSunlit) {
+    auto processFace = [&](GLint x, GLint y, GLint z, int8_t face) {
         GLint extentX = 1;
         GLint extentY = 1;
         GLint blockType = blockTypes[getIndex(x, y, z)];
         GLint textureLayer = getTextureLayer(blockType, face);
+        GLuint index = getIndex(x, y, z);
+        uint8_t lightLevel = lightLevels[index];
 
         switch (face) {
         case 0: // Back face
@@ -215,7 +228,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addBackFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
+            Block::addBackFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
             break;
 
         case 1: // Front face
@@ -242,7 +255,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addFrontFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
+            Block::addFrontFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
             break;
 
         case 2: // Left face
@@ -269,7 +282,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addLeftFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
+            Block::addLeftFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
             break;
 
         case 3: // Right face
@@ -296,7 +309,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addRightFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
+            Block::addRightFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
             break;
 
         case 4: // Top face
@@ -323,7 +336,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addTopFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
+            Block::addTopFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
             break;
 
         case 5: // Bottom face
@@ -350,7 +363,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addBottomFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, isSunlit);
+            Block::addBottomFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
             break;
         }
         };
@@ -359,40 +372,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         for (GLint y = 0; y < CHUNK_HEIGHT; ++y) {
             for (GLint z = 0; z < CHUNK_SIZE; ++z) {
                 GLint index = getIndex(x, y, z);
-                bool isSunlit = sunlitBlocks[index];
                 if (blockTypes[index] == -1) continue;
 
-                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1)) processFace(x, y, z, 0, isSunlit);
-                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1)) processFace(x, y, z, 1, isSunlit);
-                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2, isSunlit);
-                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0)) processFace(x, y, z, 3, isSunlit);
-                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0)) processFace(x, y, z, 4, isSunlit);
-                if (!processed[x][y][z].bottom && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5, isSunlit);
+                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1)) processFace(x, y, z, 0);
+                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1)) processFace(x, y, z, 1);
+                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2);
+                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0)) processFace(x, y, z, 3);
+                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0)) processFace(x, y, z, 4);
+                if (!processed[x][y][z].bottom && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5);
             }
-        }
-    }
-}
-
-void Chunk::updateSunlightColumn(GLint localX, GLint localZ)
-{
-    bool isSunlit = true;
-    for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y)
-    {
-        GLint index = localX * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + localZ;
-
-        if (blockTypes[index] == -1)
-        {
-            continue;
-        }
-
-        if (isSunlit)
-        {
-            sunlitBlocks[index] = true;
-            isSunlit = false;
-        }
-        else
-        {
-            sunlitBlocks[index] = false;
         }
     }
 }
@@ -418,7 +406,6 @@ void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
     }
     GLint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
     blockTypes[index] = type;
-    updateSunlightColumn(x, z);
 }
 
 void Chunk::Draw()
@@ -463,7 +450,7 @@ void Chunk::updateOpenGLBuffers()
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
     glEnableVertexAttribArray(3);
 
-    // Sunlit flag attribute
+    // Light level attribute
     glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
     glEnableVertexAttribArray(4);
 
