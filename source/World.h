@@ -47,6 +47,8 @@ private:
 	void updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
 	bool isChunkInFrustum(GLint chunkX, GLint chunkZ, const Frustum& frustum) const;
 
+	void propagateSunlight(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
+
 	std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash> chunks;
 	std::priority_queue<ChunkCoord, std::vector<ChunkCoord>, ChunkCoordComparator> chunkLoadQueue;
 	GLint playerChunkX, playerChunkZ;

@@ -30,8 +30,11 @@ public:
 	glm::vec3 getMinBounds() const { return minBounds; }
 	glm::vec3 getMaxBounds() const { return maxBounds; }
 
+	void recalculateSunlightColumn(GLint x, GLint z);
+
 	GLfloat chunkX, chunkZ;
 	std::vector<GLint> blockTypes;
+	std::vector<uint8_t> lightLevels;
 
 private:
 	void generateChunk();
@@ -47,8 +50,6 @@ private:
 	glm::vec3 maxBounds;
 
 	std::vector<std::vector<std::vector<GLint>>> chunkData;
-
-	std::vector<uint8_t> lightLevels;
 
 	TextureManager& textureManager;
 

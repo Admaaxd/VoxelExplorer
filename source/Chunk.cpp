@@ -81,6 +81,10 @@ void Chunk::generateChunk()
                     {
                         blockTypes[index] = 4; // Water
                     }
+                    else
+                    {
+                        blockTypes[index] = -1; // Air above the terrain
+                    }
                     continue;
                 }
 
@@ -115,22 +119,24 @@ void Chunk::generateChunk()
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
         {
-            uint8_t lightLevel = 15; // Maximum light level
+            recalculateSunlightColumn(x, z);
+        }
+    }
+}
 
-            for (int y = CHUNK_HEIGHT - 1; y >= 0; --y)
-            {
-                GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
+    uint8_t lightLevel = 15; // Maximum sunlight
 
-                if (blockTypes[index] == -1) // Air block
-                {
-                    lightLevels[index] = lightLevel;
-                }
-                else // Solid block
-                {
-                    lightLevels[index] = lightLevel;
-                    lightLevel = 0; // Light doesn't penetrate solid blocks
-                }
-            }
+    // Loop through the column from top to bottom
+    for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y) {
+        GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+
+        if (blockTypes[index] == -1) { // Air block
+            lightLevels[index] = lightLevel;
+        }
+        else { // Solid block
+            lightLevels[index] = lightLevel;
+            lightLevel = 0; // Stop sunlight propagation at solid blocks
         }
     }
 }

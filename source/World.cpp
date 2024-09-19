@@ -124,11 +124,22 @@ void World::setBlock(GLint x, GLint y, GLint z, int8_t type) {
 
 	if (Chunk* chunk = getChunk(chunkX, chunkZ)) {
 		chunk->setBlockType(localX, localY, localZ, type);
+		if (type == -1) {
+			propagateSunlight(chunkX, chunkZ, localX, localY, localZ);
+		}
 		chunk->generateMesh(chunk->getBlockTypes());
 		chunk->updateOpenGLBuffers();
 	}
 
 	updateNeighboringChunksOnBlockChange(chunkX, chunkZ, localX, localY, localZ);
+}
+
+void World::propagateSunlight(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ) {
+	Chunk* chunk = getChunk(chunkX, chunkZ);
+	if (!chunk) return;
+
+	// Recalculate sunlight for the entire column where the block was removed
+	chunk->recalculateSunlightColumn(localX, localZ);
 }
 
 void World::queueChunkLoad(GLint x, GLint z)

@@ -25,7 +25,7 @@ void main()
     vec3 lighting = ambient;
 
     // Compute fade factor based on sun's position
-    float fadeFactor = clamp(-lightDirection.y, 0.0, 1.0);
+    float fadeFactor = clamp(-lightDirection.y + 3, 0.0, 1.0);
 
     // Diffuse lighting
     vec3 norm = normalize(Normal);
