@@ -23,12 +23,21 @@ SkyboxRenderer::~SkyboxRenderer() {
     glDeleteTextures(1, &sunTexture);
 }
 
-void SkyboxRenderer::updateSunPosition(GLfloat deltaTime) {
+void SkyboxRenderer::updateSunPosition(float deltaTime) {
     currentAngle += orbitSpeed * deltaTime;
 
     sunPosition.x = orbitCenter.x;
     sunPosition.y = orbitCenter.y + orbitRadius * sin(currentAngle);
     sunPosition.z = orbitCenter.z + orbitRadius * cos(currentAngle);
+}
+
+void SkyboxRenderer::setOrbitSpeed(float speed)
+{
+    orbitSpeed = speed;
+}
+
+float SkyboxRenderer::getOrbitSpeed() const {
+    return orbitSpeed;
 }
 
 void SkyboxRenderer::setupSkybox() {

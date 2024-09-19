@@ -114,7 +114,7 @@ int main()
 		skybox.renderSkybox(view, projection);
 		skybox.renderSun(view, projection);
 
-		if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum);
+		if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum, skybox);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -220,7 +220,7 @@ void main::initializeImGui(GLFWwindow* window) {
 	ImGui::StyleColorsDark();
 }
 
-void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum) {
+void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum, SkyboxRenderer& skyboxRenderer) {
 	glDisable(GL_DEPTH_TEST);
 
 	// Start ImGui frame
@@ -243,6 +243,21 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	GLint selectedBlockType = player.getSelectedBlockType();
 	if (ImGui::Combo("Block Type", &selectedBlockType, blockTypeNames, IM_ARRAYSIZE(blockTypeNames))) {
 		player.setSelectedBlockType(selectedBlockType);
+	}
+
+	// Sun speed adjustment
+	ImGui::Separator();
+	ImGui::Text("Sun Settings");
+
+	static bool initialized = false;
+	static GLfloat sunSpeed = 0.01f;
+	if (!initialized) {
+		sunSpeed = skyboxRenderer.getOrbitSpeed();
+		initialized = true;
+	}
+
+	if (ImGui::SliderFloat("Sun Speed", &sunSpeed, 0.0f, 2.0f, "%.3f")) {
+		skyboxRenderer.setOrbitSpeed(sunSpeed);
 	}
 
 	ImGui::Separator();

@@ -32,7 +32,7 @@ public:
 	static void initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world, Frustum& frustum);
 	static void renderBlockOutline(const Player& player, const glm::mat4& projection, const glm::mat4& view, BlockOutline& blockOutline);
 	static void initializeImGui(GLFWwindow* window);
-	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum);
+	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum, SkyboxRenderer& skyboxRenderer);
 	static void cleanupImGui();
 	static void cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair);
 	static void processInput(GLFWwindow* window);

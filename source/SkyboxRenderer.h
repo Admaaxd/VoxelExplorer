@@ -19,7 +19,10 @@ public:
     void renderSkybox(const glm::mat4& view, const glm::mat4& projection);
     void renderSun(const glm::mat4& view, const glm::mat4& projection);
     glm::vec3 getSunPosition() const;
-    void updateSunPosition(GLfloat deltaTime);
+    void updateSunPosition(float deltaTime);
+
+    void setOrbitSpeed(float speed);
+    float getOrbitSpeed() const;
 
 private:
     GLuint skyboxVAO, skyboxVBO;
