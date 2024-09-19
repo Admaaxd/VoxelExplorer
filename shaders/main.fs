@@ -6,6 +6,7 @@ in float texLayer;
 in vec3 FragPos;
 in vec3 Normal;
 in float LightLevel;
+in float ao;
 
 uniform sampler2DArray texArray;
 uniform vec3 lightDirection;
@@ -19,18 +20,18 @@ void main()
 
     float minAmbient = 0.23;
     float ambientStrength = mix(minAmbient, 0.23, LightLevel);
-    vec3 ambient = ambientStrength * lightColor;
+    vec3 ambient = (ambientStrength * lightColor) * ao;
 
     // Initialize lighting result
     vec3 lighting = ambient;
 
     // Compute fade factor based on sun's position
-    float fadeFactor = clamp(-lightDirection.y + 3, 0.0, 1.0);
+    float fadeFactor = clamp(-lightDirection.y + 2, 0.0, 1.0);
 
     // Diffuse lighting
     vec3 norm = normalize(Normal);
     float diff = max(dot(norm, -lightDirection), 0.0) * fadeFactor * LightLevel;
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = (diff * lightColor) * ao;
 
     // Specular lighting
     float specularStrength = 0.5 * LightLevel;

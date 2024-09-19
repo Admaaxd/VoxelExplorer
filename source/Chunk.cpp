@@ -201,6 +201,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         }
     };
 
+    auto calculateAO = [&](bool side1, bool side2, bool corner) {
+        GLfloat baseAO = 1.0f;
+        if (side1 && side2) baseAO = 1.0f;
+        else baseAO = 1.0f - (side1 + side2 + corner) / 3.0f;
+        return glm::clamp(baseAO, 0.90f, 1.0f);
+    };
+
     auto processFace = [&](GLint x, GLint y, GLint z, int8_t face) {
         GLint extentX = 1;
         GLint extentY = 1;
@@ -208,9 +215,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         GLint textureLayer = getTextureLayer(blockType, face);
         GLuint index = getIndex(x, y, z);
         uint8_t lightLevel = lightLevels[index];
+        GLfloat ao[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
         switch (face) {
         case 0: // Back face
+
+            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, -1, 1, 0));
+            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 1, 1, 0));
+            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, -1, -1, 0));
+            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 1, -1, 0));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !processed[x][y + extentY][z].back && isExposed(x, y + extentY, z, 0, 0, -1)) {
@@ -234,10 +247,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addBackFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
+            Block::addBackFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel, ao);
             break;
 
         case 1: // Front face
+
+            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, -1, 1, 1));
+            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 1, 1, 1));
+            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, -1, -1, 1));
+            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 1, -1, 1));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !processed[x][y + extentY][z].front && isExposed(x, y + extentY, z, 0, 0, 1)) {
@@ -261,10 +279,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addFrontFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
+            Block::addFrontFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel, ao);
             break;
 
         case 2: // Left face
+
+            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, -1));
+            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, 1));
+            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, -1));
+            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, 1));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !processed[x][y + extentY][z].left && isExposed(x, y + extentY, z, -1, 0, 0)) {
@@ -288,10 +311,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addLeftFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
+            Block::addLeftFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel, ao);
             break;
 
         case 3: // Right face
+
+            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, -1));
+            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, 1));
+            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, -1));
+            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, 1));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !processed[x][y + extentY][z].right && isExposed(x, y + extentY, z, 1, 0, 0)) {
@@ -315,7 +343,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addRightFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
+            Block::addRightFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel, ao);
             break;
 
         case 4: // Top face
@@ -342,10 +370,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addTopFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
+            Block::addTopFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel, ao);
             break;
 
         case 5: // Bottom face
+
+            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, -1, 0, -1));
+            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 1, 0, -1));
+            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, -1, 0, 1));
+            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 1, 0, 1));
 
             while (z + extentY < CHUNK_SIZE && blockTypes[getIndex(x, y, z + extentY)] == blockType &&
                 !processed[x][y][z + extentY].bottom && isExposed(x, y, z + extentY, 0, -1, 0)) {
@@ -369,7 +402,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
                 extentX++;
             }
-            Block::addBottomFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel);
+            Block::addBottomFace(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, extentX, extentY, textureLayer, lightLevel, ao);
             break;
         }
         };
@@ -441,24 +474,28 @@ void Chunk::updateOpenGLBuffers()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
 
     // Texture coordinate attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
 
     // Texture layer attribute
-    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
     
     // Normal attribute
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
     glEnableVertexAttribArray(3);
 
     // Light level attribute
-    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 10 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
     glEnableVertexAttribArray(4);
+
+    // Ambient occlusion attribute
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(10 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(5);
 
     glBindVertexArray(0);
 }
