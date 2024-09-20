@@ -27,15 +27,35 @@ void Chunk::setupChunk()
 
 void Chunk::generateChunk()
 {
-    FastNoiseLite baseNoise, elevationNoise, caveNoise;
+    FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise;
 
     // Base noise
     baseNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     baseNoise.SetFrequency(0.005f);
 
-    // Elevation noise
+    // Elevation noise (general hills and plains)
     elevationNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     elevationNoise.SetFrequency(0.001f);
+    elevationNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    elevationNoise.SetFractalOctaves(7);
+
+    // Ridge noise (sharp peaks and valleys)
+    ridgeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+    ridgeNoise.SetFrequency(0.0008f);
+    ridgeNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    ridgeNoise.SetFractalOctaves(5);
+
+    // Mountain noise (sharp peaks)
+    mountainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    mountainNoise.SetFrequency(0.0001f);
+    mountainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    mountainNoise.SetFractalOctaves(7); // For mountainous features
+
+    // Detail noise (fine-grained features)
+    detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    detailNoise.SetFrequency(0.02f);
+    detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    detailNoise.SetFractalOctaves(8); // More octaves for small details
 
     // Cave noise
     caveNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
@@ -43,10 +63,16 @@ void Chunk::generateChunk()
     caveNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     caveNoise.SetFractalOctaves(4);
 
+    // Secondary noise for tunnels or smaller cave details
+    secondaryCaveNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+    secondaryCaveNoise.SetFrequency(0.02f);
+    secondaryCaveNoise.SetFractalType(FastNoiseLite::FractalType_PingPong);
+    secondaryCaveNoise.SetFractalOctaves(6);
+
     blockTypes.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, -1);
 
     uint8_t caveMinHeight = CHUNK_HEIGHT / 64;
-    uint8_t surfaceBuffer = CHUNK_HEIGHT / 10;
+    uint8_t surfaceBuffer = CHUNK_HEIGHT / 9;
 
     for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
     {
@@ -58,23 +84,36 @@ void Chunk::generateChunk()
             // Generate base terrain height
             GLfloat baseHeight = baseNoise.GetNoise(worldX, worldZ);
             GLfloat elevation = elevationNoise.GetNoise(worldX, worldZ);
+            GLfloat ridge = ridgeNoise.GetNoise(worldX, worldZ) * 0.4f; // Add ridges
+            GLfloat mountains = mountainNoise.GetNoise(worldX, worldZ) * 0.5f; // Add mountainous regions
+            GLfloat detail = detailNoise.GetNoise(worldX, worldZ) * 0.2f; // Add fine-grain details
 
-            uint8_t terrainHeight = static_cast<uint8_t>((baseHeight + elevation * 0.5f + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
+            // Combine noise layers
+            GLfloat finalHeight = baseHeight + elevation * 0.5f + ridge + mountains + detail;
+
+            uint8_t terrainHeight = static_cast<uint8_t>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
                 GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
-                // Generate cave structures
+                // Primary cave noise
                 GLfloat caveValue = caveNoise.GetNoise(worldX, static_cast<GLfloat>(y), worldZ);
-                bool isCave = caveValue > 0.37f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
 
-                if (isCave)
+                // Secondary cave noise for tunnels and smaller cavities
+                GLfloat tunnelValue = secondaryCaveNoise.GetNoise(worldX, static_cast<GLfloat>(y), worldZ);
+
+                // Vary cave thresholds based on height and tunnel values for complexity
+                bool isMainCave = caveValue > 0.35f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
+                bool isTunnel = tunnelValue > 0.5f && caveValue > 0.25f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer - 20);
+
+                if (isMainCave || isTunnel)
                 {
-                    blockTypes[index] = -1; // Air block for caves
+                    blockTypes[index] = -1; // Air block for caves and tunnels
                     continue;
                 }
 
+                // Terrain filling logic as before
                 if (y > terrainHeight)
                 {
                     if (y <= WATERLEVEL)
