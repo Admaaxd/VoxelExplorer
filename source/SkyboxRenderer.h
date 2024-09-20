@@ -13,13 +13,15 @@
 
 class SkyboxRenderer {
 public:
-    SkyboxRenderer(const std::vector<std::string>& faces, const std::string& sunTexturePath);
+    SkyboxRenderer(const std::vector<std::string>& faces, const std::string& sunTexturePath, const std::string& moonTexturePath);
     ~SkyboxRenderer();
 
     void renderSkybox(const glm::mat4& view, const glm::mat4& projection);
     void renderSun(const glm::mat4& view, const glm::mat4& projection);
+    void renderMoon(const glm::mat4& view, const glm::mat4& projection);
     glm::vec3 getSunPosition() const;
-    void updateSunPosition(float deltaTime);
+    glm::vec3 getMoonPosition() const;
+    void updateSunAndMoonPosition(float deltaTime);
 
     void setOrbitSpeed(float speed);
     float getOrbitSpeed() const;
@@ -31,8 +33,12 @@ private:
 
     GLuint sunVAO, sunVBO;
     GLuint sunTexture;
-    shader sunShader;
+    shader sunMoonShader;
     glm::vec3 sunPosition;
+
+    GLuint moonVAO, moonVBO;
+    GLuint moonTexture;
+    glm::vec3 moonPosition;
 
     glm::vec3 orbitCenter;
     GLfloat orbitRadius;
@@ -44,6 +50,7 @@ private:
 
     GLuint loadTexture(const std::string& path);
     void setupSun();
+    void setupMoon();
 
 };
 

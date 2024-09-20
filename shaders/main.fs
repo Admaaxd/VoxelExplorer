@@ -13,11 +13,15 @@ uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform vec3 viewPos;
 
+uniform vec3 moonDirection;
+uniform vec3 moonColor;
+
 void main()
 {
     // Base texture color
     vec3 textureColor = texture(texArray, vec3(texCoord, texLayer)).rgb;
 
+    // Ambient lighting
     float minAmbient = 0.23;
     float ambientStrength = mix(minAmbient, 0.23, LightLevel);
     vec3 ambient = (ambientStrength * lightColor) * ao;
@@ -25,23 +29,33 @@ void main()
     // Initialize lighting result
     vec3 lighting = ambient;
 
-    // Compute fade factor based on sun's position
-    float fadeFactor = clamp(-lightDirection.y + 2, 0.0, 1.0);
-
-    // Diffuse lighting
+    // Sun Lighting
+    float fadeFactorSun = clamp(-lightDirection.y, 0.0, 1.0);
     vec3 norm = normalize(Normal);
-    float diff = max(dot(norm, -lightDirection), 0.0) * fadeFactor * LightLevel;
-    vec3 diffuse = (diff * lightColor) * ao;
+    float diffSun = max(dot(norm, -lightDirection), 0.0) * fadeFactorSun * LightLevel;
+    vec3 diffuseSun = (diffSun * lightColor) * ao;
 
-    // Specular lighting
+    // Moon Lighting
+    float fadeFactorMoon = clamp(-moonDirection.y, 0.0, 1.0);
+    float diffMoon = max(dot(norm, -moonDirection), 0.0) * fadeFactorMoon * LightLevel;
+    vec3 diffuseMoon = (diffMoon * moonColor) * ao;
+
+    // Specular lighting (Sun and Moon)
     float specularStrength = 0.5 * LightLevel;
     vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 reflectDir = reflect(lightDirection, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32) * fadeFactor * LightLevel;
-    vec3 specular = specularStrength * spec * lightColor;
 
-    // Combine lighting components
-    lighting += diffuse + specular;
+    // Sun Specular
+    vec3 reflectDirSun = reflect(lightDirection, norm);
+    float specSun = pow(max(dot(viewDir, reflectDirSun), 0.0), 32) * fadeFactorSun * LightLevel;
+    vec3 specularSun = specularStrength * specSun * lightColor;
+
+    // Moon Specular
+    vec3 reflectDirMoon = reflect(moonDirection, norm);
+    float specMoon = pow(max(dot(viewDir, reflectDirMoon), 0.0), 32) * fadeFactorMoon * LightLevel;
+    vec3 specularMoon = specularStrength * specMoon * moonColor;
+
+    // Combine lighting components (Sun + Moon)
+    lighting += (diffuseSun + specularSun) + (diffuseMoon + specularMoon);
 
     vec3 result = lighting * textureColor;
     FragColor = vec4(result, 1.0);
