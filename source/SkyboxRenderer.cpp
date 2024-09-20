@@ -1,10 +1,11 @@
 #include "SkyboxRenderer.h"
 
-SkyboxRenderer::SkyboxRenderer(const std::vector<std::string>& faces, const std::string& sunTexturePath, const std::string& moonTexturePath)
+SkyboxRenderer::SkyboxRenderer(const std::vector<std::string>& dayFaces, const std::vector<std::string>& nightFaces, const std::string& sunTexturePath, const std::string& moonTexturePath)
     : skyboxShader("shaders/skybox.vs", "shaders/skybox.fs"), sunMoonShader("shaders/sun-moon.vs", "shaders/sun-moon.fs"),
     orbitCenter(glm::vec3(0.0f, 0.0f, 0.0f)), orbitRadius(300.0f), orbitSpeed(0.01f), currentAngle(0.0f)
 {
-    cubemapTexture = loadCubemap(faces);
+    dayCubemapTexture = loadCubemap(dayFaces);
+    nightCubemapTexture = loadCubemap(nightFaces);
     setupSkybox();
 
     sunTexture = loadTexture(sunTexturePath);
@@ -18,7 +19,8 @@ SkyboxRenderer::SkyboxRenderer(const std::vector<std::string>& faces, const std:
 SkyboxRenderer::~SkyboxRenderer() {
     glDeleteVertexArrays(1, &skyboxVAO);
     glDeleteBuffers(1, &skyboxVBO);
-    glDeleteTextures(1, &cubemapTexture);
+    glDeleteTextures(1, &dayCubemapTexture);
+    glDeleteTextures(1, &nightCubemapTexture);
 
     glDeleteVertexArrays(1, &sunVAO);
     glDeleteBuffers(1, &sunVBO);
@@ -26,12 +28,16 @@ SkyboxRenderer::~SkyboxRenderer() {
 }
 
 void SkyboxRenderer::updateSunAndMoonPosition(float deltaTime) {
-    moonPosition = -sunPosition;
     currentAngle += orbitSpeed * deltaTime;
 
     sunPosition.x = orbitCenter.x;
     sunPosition.y = orbitCenter.y + orbitRadius * sin(currentAngle);
     sunPosition.z = orbitCenter.z + orbitRadius * cos(currentAngle);
+
+    moonPosition = -sunPosition;
+
+    if (sunPosition.y < 0.0f) isNight = true;
+    else isNight = false;
 }
 
 void SkyboxRenderer::setOrbitSpeed(float speed)
@@ -230,7 +236,12 @@ void SkyboxRenderer::renderSkybox(const glm::mat4& view, const glm::mat4& projec
     skyboxShader.setMat4("projection", projection);
 
     glBindVertexArray(skyboxVAO);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    if (isNight) {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, nightCubemapTexture);
+    }
+    else {
+        glBindTexture(GL_TEXTURE_CUBE_MAP, dayCubemapTexture);
+    }
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 

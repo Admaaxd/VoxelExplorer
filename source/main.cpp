@@ -30,14 +30,24 @@ GLint blockType;
 std::vector<GLfloat> memoryUsageHistory;
 constexpr int8_t MEMORY_HISTORY_SIZE = 100;
 
-std::vector<std::string> faces
+std::vector<std::string> dayFaces
 {
-	"skybox/right.jpg",
-	"skybox/left.jpg",
-	"skybox/top.bmp",
-	"skybox/bottom.jpg",
-	"skybox/front.jpg",
-	"skybox/back.jpg"
+	"skybox/daytimesky/right.jpg",
+	"skybox/daytimesky/left.jpg",
+	"skybox/daytimesky/top.bmp",
+	"skybox/daytimesky/bottom.jpg",
+	"skybox/daytimesky/front.jpg",
+	"skybox/daytimesky/back.jpg"
+};
+
+std::vector<std::string> nightFaces
+{
+	"skybox/nightsky/right.jpg",
+	"skybox/nightsky/left.jpg",
+	"skybox/nightsky/top.jpg",
+	"skybox/nightsky/bottom.jpg",
+	"skybox/nightsky/front.jpg",
+	"skybox/nightsky/back.jpg"
 };
 
 int main()
@@ -53,7 +63,7 @@ int main()
 	shader mainShader("shaders/main.vs", "shaders/main.fs");
 	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
 	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
-	SkyboxRenderer skybox(faces, "skybox/sun.png", "skybox/moon.png");
+	SkyboxRenderer skybox(dayFaces, nightFaces ,"skybox/sun.png", "skybox/moon.png");
 	Crosshair crosshair;
 	crosshair.initialize();
 	BlockOutline blockOutline;

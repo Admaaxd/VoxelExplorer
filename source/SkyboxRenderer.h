@@ -13,7 +13,7 @@
 
 class SkyboxRenderer {
 public:
-    SkyboxRenderer(const std::vector<std::string>& faces, const std::string& sunTexturePath, const std::string& moonTexturePath);
+    SkyboxRenderer(const std::vector<std::string>& dayFaces, const std::vector<std::string>& nightFaces, const std::string& sunTexturePath, const std::string& moonTexturePath);
     ~SkyboxRenderer();
 
     void renderSkybox(const glm::mat4& view, const glm::mat4& projection);
@@ -28,7 +28,8 @@ public:
 
 private:
     GLuint skyboxVAO, skyboxVBO;
-    GLuint cubemapTexture;
+    GLuint dayCubemapTexture;
+    GLuint nightCubemapTexture;
     shader skyboxShader;
 
     GLuint sunVAO, sunVBO;
@@ -44,6 +45,8 @@ private:
     GLfloat orbitRadius;
     GLfloat orbitSpeed;
     GLfloat currentAngle;
+
+    bool isNight = false;
 
     GLuint loadCubemap(const std::vector<std::string>& faces);
     void setupSkybox();
