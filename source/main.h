@@ -25,11 +25,20 @@
 class main
 {
 public:
+	static void processRendering(GLFWwindow* window, shader& mainShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox,
+		Player& player, Frustum& frustum, World& world, Crosshair& crosshair, BlockOutline& blockOutline);
+
 	static void initializeGLFW(GLFWwindow*& window);
 	static void initializeGLAD();
 	static void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
+	static void setupRenderingState();
+
 	static void updateFPS();
+
 	static void initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::mat4 view, glm::mat4 projection, World& world, Frustum& frustum);
+
+	static void renderSkybox(SkyboxRenderer& skybox, glm::mat4& view, const glm::mat4& projection, Camera& camera);
+
 	static void renderBlockOutline(const Player& player, const glm::mat4& projection, const glm::mat4& view, BlockOutline& blockOutline);
 	static void initializeImGui(GLFWwindow* window);
 	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum, SkyboxRenderer& skyboxRenderer);

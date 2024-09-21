@@ -2,7 +2,8 @@
 out vec4 FragColor;
 
 in vec2 texCoord;
-in float texLayer;  
+in float texLayer;
+in float fogFactor;  // Fog factor from the vertex shader
 in vec3 FragPos;
 in vec3 Normal;
 in float LightLevel;
@@ -15,6 +16,8 @@ uniform vec3 viewPos;
 
 uniform vec3 moonDirection;
 uniform vec3 moonColor;
+
+uniform vec4 fogColor;  // Fog color, including alpha
 
 void main()
 {
@@ -57,6 +60,13 @@ void main()
     // Combine lighting components (Sun + Moon)
     lighting += (diffuseSun + specularSun) + (diffuseMoon + specularMoon);
 
+    // Compute the final lighting result
     vec3 result = lighting * textureColor;
-    FragColor = vec4(result, 1.0);
+
+    // --- FOG APPLICATION ---
+    // Blend the final result color with the fog color based on the fogFactor
+    vec3 finalColor = mix(fogColor.rgb, result, fogFactor);
+
+    // Output the final color with full alpha (1.0)
+    FragColor = vec4(finalColor, 1.0);
 }

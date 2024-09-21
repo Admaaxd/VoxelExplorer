@@ -457,7 +457,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2);
                 if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0)) processFace(x, y, z, 3);
                 if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0)) processFace(x, y, z, 4);
-                if (!processed[x][y][z].bottom && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5);
+                if (!processed[x][y][z].bottom && y > 0 && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5);
             }
         }
     }

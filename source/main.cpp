@@ -74,13 +74,11 @@ int main()
 	glfwSetWindowUserPointer(window, &player);
 	glfwSetMouseButtonCallback(window, main::mouseButtonCallback);
 
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW);
-	glEnable(GL_DEPTH_TEST);
+	main::setupRenderingState();
 
 	main::initializeImGui(window);
 
+	    // -- Main Game Loop -- //
 	while (!glfwWindowShouldClose(window))
 	{
 		main::updateFPS();
@@ -89,59 +87,80 @@ int main()
 		camera.update(deltaTime);
 		skybox.updateSunAndMoonPosition(deltaTime);
 
-		glm::mat4 view = camera.getViewMatrix();
-		glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
-		glm::mat4 model = glm::mat4(1.0f);
-		frustum.update(projection * view);
-		
-		glm::vec3 playerPosition = camera.getPosition();
-		world.updatePlayerPosition(playerPosition);
-		world.processChunkLoadQueue(1);
-
-		glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glm::vec3 sunPosition = skybox.getSunPosition();
-		glm::vec3 moonPosition = skybox.getMoonPosition();
-		glm::vec3 lightDirection = glm::normalize(-sunPosition);
-		glm::vec3 moonDirection = glm::normalize(-moonPosition);
-
-		mainShader.use();
-		mainShader.setMat4("model", model);
-		mainShader.setMat4("view", view);
-		mainShader.setMat4("projection", projection);
-		// Sunlight
-		mainShader.setVec3("lightDirection", lightDirection);
-		mainShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 0.95f));
-		mainShader.setVec3("viewPos", camera.getPosition());
-
-		// Moonlight
-		mainShader.setVec3("moonDirection", moonDirection);
-		mainShader.setVec3("moonColor", glm::vec3(0.5f, 0.5f, 0.8f));
-
-		world.Draw(frustum);
-
-		if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
-
-		main::renderBlockOutline(player, projection, view, blockOutline);
-		
-		if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world, frustum);
-
-		view = glm::mat4(glm::mat3(camera.getViewMatrix()));
-		skybox.renderSkybox(view, projection);
-		skybox.renderSun(view, projection);
-		skybox.renderMoon(view, projection);
-
-		if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum, skybox);
+		main::processRendering(window, mainShader, meshingShader, crosshairShader, skybox, player, frustum, world, crosshair, blockOutline);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
+
+	// Cleanup
 	main::cleanupImGui();
 	main::cleanup(mainShader, meshingShader, crosshair);
 
 	glfwTerminate();
 	return 0;
+}
+
+
+void main::processRendering(GLFWwindow* window, shader& mainShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox, 
+	Player& player, Frustum& frustum, World& world, Crosshair& crosshair, BlockOutline& blockOutline) 
+{
+	// Prepare matrices
+	glm::mat4 view = camera.getViewMatrix();
+	glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
+	glm::mat4 model = glm::mat4(1.0f);
+
+	// Update Frustum and World State
+	frustum.update(projection * view);
+	glm::vec3 playerPosition = camera.getPosition();
+	world.updatePlayerPosition(playerPosition);
+	world.processChunkLoadQueue(1);
+
+	// Clear Buffers
+	glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Light and Skybox Positions
+	glm::vec3 sunPosition = skybox.getSunPosition();
+	glm::vec3 moonPosition = skybox.getMoonPosition();
+	glm::vec3 lightDirection = glm::normalize(-sunPosition);
+	glm::vec3 moonDirection = glm::normalize(-moonPosition);
+
+	// Set Shader Uniforms
+	mainShader.use();
+	mainShader.setMat4("model", model);
+	mainShader.setMat4("view", view);
+	mainShader.setMat4("projection", projection);
+
+	// Sun
+	mainShader.setVec3("lightDirection", lightDirection);
+	mainShader.setVec3("lightColor", glm::vec3(1.0f, 1.0f, 0.95f));
+	mainShader.setVec3("viewPos", camera.getPosition());
+
+	// Moon
+	mainShader.setVec3("moonDirection", moonDirection);
+	mainShader.setVec3("moonColor", glm::vec3(0.5f, 0.5f, 0.8f));
+
+	// Fog
+	mainShader.setVec4("fogColor", glm::vec4(0.5f, 0.6f, 0.7f, 1.0f));
+	mainShader.setVec3("cameraPosition", camera.getPosition());
+
+	world.Draw(frustum);
+
+	// Draw Crosshair
+	if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
+
+	// Render Block Outline
+	main::renderBlockOutline(player, projection, view, blockOutline);
+
+	// Outline Mesh
+	if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world, frustum);
+
+	// Render Skybox
+	main::renderSkybox(skybox, view, projection, camera);
+
+	// ImGui
+	if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum, skybox);
 }
 
 void main::cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair)
@@ -186,6 +205,13 @@ void main::framebuffer_size_callback(GLFWwindow* window, GLint width, GLint heig
 	glViewport(0, 0, width, height);
 }
 
+void main::setupRenderingState() {
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW);
+	glEnable(GL_DEPTH_TEST);
+}
+
 void main::updateFPS() {
 	GLfloat currentTime = static_cast<GLfloat>(glfwGetTime());
 	nbFrames++;
@@ -228,6 +254,14 @@ void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::ma
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
 	glDisable(GL_POLYGON_OFFSET_LINE); // Disable polygon offset for lines
 	glLineWidth(1.0f);
+}
+
+void main::renderSkybox(SkyboxRenderer& skybox, glm::mat4& view, const glm::mat4& projection, Camera& camera)
+{
+	view = glm::mat4(glm::mat3(camera.getViewMatrix()));
+	skybox.renderSkybox(view, projection);
+	skybox.renderSun(view, projection);
+	skybox.renderMoon(view, projection);
 }
 
 void main::initializeImGui(GLFWwindow* window) {

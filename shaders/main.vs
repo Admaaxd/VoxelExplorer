@@ -10,12 +10,14 @@ out vec2 texCoord;
 out float texLayer;
 out vec3 FragPos;
 out vec3 Normal;
+out float fogFactor;
 out float LightLevel;
 out float ao;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform vec3 cameraPosition;  // Camera position to calculate distance for fog
 
 void main()
 {
@@ -28,4 +30,14 @@ void main()
     Normal = mat3(transpose(inverse(model))) * aNormal;
     LightLevel = aLightLevel;
     ao = aAO;
+
+    // Compute distance from the camera to the fragment position for fog
+    float distance = length(worldPos.xyz - cameraPosition);
+
+    // Fog parameters
+    float fogStart = 50.0;  // Fog starts at this distance
+    float fogEnd = 205.0;   // Fog fully takes over at this distance
+
+    // Calculate the fog factor (linear interpolation between fogStart and fogEnd)
+    fogFactor = clamp((fogEnd - distance) / (fogEnd - fogStart), 0.0, 1.0);
 }
