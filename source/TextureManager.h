@@ -21,12 +21,15 @@ private:
 
     const std::vector<std::string> texturePaths = 
     {
-        "textures/dirt.jpg", // DIRT -> 0
-        "textures/stone.jpg", // STONE -> 1
-        "textures/grass_top.jpg", // GRASS TOP -> 2
-        "textures/grass_side.jpg", // GRASS SIDE -> 3
-        "textures/sand.jpg", // SAND -> 4
-        "textures/water.jpg", // WATER -> 5
+        "textures/dirt.jpg",                // DIRT -> 0
+        "textures/stone.jpg",               // STONE -> 1
+        "textures/grass_top.jpg",           // GRASS TOP -> 2
+        "textures/grass_side.jpg",          // GRASS SIDE -> 3
+        "textures/sand.jpg",                // SAND -> 4
+        "textures/water.jpg",               // WATER -> 5
+        "textures/oak_log_top_bottom.jpg",  // OAK LOG TOP AND BOTTOM -> 6
+        "textures/oak_log_side.jpg",        // OAK LOG SIDE -> 7
+        "textures/oak_leaf.png",            // OAK LEAF -> 8
     };
 };
 

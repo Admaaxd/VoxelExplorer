@@ -48,9 +48,9 @@ private:
 
 	glm::vec3 minBounds;
 	glm::vec3 maxBounds;
+	bool isInitialized = false;
 
 	std::vector<std::vector<std::vector<GLint>>> chunkData;
-
 	TextureManager& textureManager;
 
 	World* world;

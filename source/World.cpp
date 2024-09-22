@@ -24,7 +24,7 @@ World::~World()
 void World::Draw(const Frustum& frustum) {
 	for (auto& pair : chunks) {
 		Chunk* chunk = pair.second;
-		if (chunk->isInFrustum(frustum)) {
+		if (chunk && chunk->isInFrustum(frustum)) {
 			chunk->Draw();
 			chunk->updateOpenGLBuffers();
 		}

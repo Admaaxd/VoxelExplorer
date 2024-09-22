@@ -8,7 +8,6 @@ Chunk::Chunk(GLint x, GLint z, TextureManager& textureManager, World* world)
     maxBounds = glm::vec3((chunkX + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunkZ + 1) * CHUNK_SIZE);
 
     setupChunk();
-
     calculateBounds();
 }
 
@@ -113,7 +112,6 @@ void Chunk::generateChunk()
                     continue;
                 }
 
-                // Terrain filling logic as before
                 if (y > terrainHeight)
                 {
                     if (y <= WATERLEVEL)
@@ -161,6 +159,7 @@ void Chunk::generateChunk()
             recalculateSunlightColumn(x, z);
         }
     }
+    isInitialized = true;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -236,6 +235,10 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             else return 3; // Side faces - Grass side
         case 3: return 4; // Sand
         case 4: return 5; // Water
+        case 5: // Oak log
+            if (face == 4 || face == 5) return 6;
+            else return 7;
+        case 6: return 8; // Oak leaf
         default: return 0; // Default to dirt
         }
     };
@@ -545,5 +548,6 @@ void Chunk::calculateBounds() {
 }
 
 bool Chunk::isInFrustum(const Frustum& frustum) const {
+    if (!isInitialized) return false;
     return frustum.isBoxInFrustum(minBounds, maxBounds);
 }
