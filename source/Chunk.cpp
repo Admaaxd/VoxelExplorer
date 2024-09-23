@@ -26,7 +26,7 @@ void Chunk::setupChunk()
 
 void Chunk::generateChunk()
 {
-    FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise;
+    FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise;
 
     // Base noise
     baseNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
@@ -118,10 +118,6 @@ void Chunk::generateChunk()
                     {
                         blockTypes[index] = 4; // Water
                     }
-                    else
-                    {
-                        blockTypes[index] = -1; // Air above the terrain
-                    }
                     continue;
                 }
 
@@ -144,6 +140,17 @@ void Chunk::generateChunk()
                 else
                 {
                     blockTypes[index] = 1; // Stone layer
+                }
+            }
+            // Random tree generation
+            if (terrainHeight > WATERLEVEL + 1)
+            {
+                if (blockTypes[x * CHUNK_HEIGHT * CHUNK_SIZE + terrainHeight * CHUNK_SIZE + z] == 2)
+                {
+                    if (rand() % 1000 < 10)
+                    {
+                        Structure::generateBaseTree(*this, x, terrainHeight + 1, z);
+                    }
                 }
             }
         }

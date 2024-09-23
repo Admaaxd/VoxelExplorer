@@ -4,6 +4,7 @@
 #include "FastNoiseLite.h"
 #include "TextureManager.h"
 #include "Frustum.h"
+#include "Structure.h"
 
 class World;
 
