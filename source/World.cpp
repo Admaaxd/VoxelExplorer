@@ -24,9 +24,16 @@ World::~World()
 void World::Draw(const Frustum& frustum) {
 	for (auto& pair : chunks) {
 		Chunk* chunk = pair.second;
-		if (chunk && chunk->isInFrustum(frustum)) {
-			chunk->Draw();
-			chunk->updateOpenGLBuffers();
+		if (chunk) {
+			if (chunk->needsMeshUpdate) {
+				chunk->generateMesh(chunk->getBlockTypes());
+				chunk->updateOpenGLBuffers();
+				chunk->needsMeshUpdate = false;
+			}
+			if (chunk->isInFrustum(frustum)) {
+				chunk->Draw();
+				chunk->updateOpenGLBuffers();
+			}
 		}
 	}
 }
@@ -102,6 +109,24 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 	}
 }
 
+void World::queueBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ, uint8_t blockType) {
+	std::lock_guard<std::mutex> lock(queuedBlockChangesMutex);
+	ChunkCoord coord = { chunkX, chunkZ };
+	queuedBlockChanges[coord].push_back({ localX, localY, localZ, blockType });
+}
+
+std::vector<BlockChange> World::getQueuedBlockChanges(GLint chunkX, GLint chunkZ) {
+	std::lock_guard<std::mutex> lock(queuedBlockChangesMutex);
+	ChunkCoord coord = { chunkX, chunkZ };
+	std::vector<BlockChange> changes;
+	auto it = queuedBlockChanges.find(coord);
+	if (it != queuedBlockChanges.end()) {
+		changes = it->second;
+		queuedBlockChanges.erase(it);
+	}
+	return changes;
+}
+
 Chunk* World::getChunk(GLint x, GLint z)
 {
 	ChunkCoord coord = { x, z };
@@ -152,8 +177,15 @@ void World::loadChunk(GLint x, GLint z) {
 		auto future = threadPool.enqueue([this, coord, x, z]() -> Chunk* {
 			Chunk* chunk = new Chunk(x, z, textureManager, this);
 
-			std::lock_guard<std::mutex> lock(chunksMutex);
-			chunks[coord] = chunk;
+			std::vector<BlockChange> changes = getQueuedBlockChanges(x, z);
+			for (const auto& change : changes) {
+				chunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
+			}
+
+			{
+				std::lock_guard<std::mutex> lock(chunksMutex);
+				chunks[coord] = chunk;
+			}
 			return chunk;
 		});
 

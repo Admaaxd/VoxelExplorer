@@ -4,6 +4,7 @@
 #include <cstdint>
 
 class Chunk;
+class World;
 
 class Structure {
 public:

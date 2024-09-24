@@ -37,9 +37,18 @@ public:
 	std::vector<GLint> blockTypes;
 	std::vector<uint8_t> lightLevels;
 
+	World* world;
+	bool needsMeshUpdate = false;
+
 private:
 	void generateChunk();
 	void calculateBounds();
+	GLint getTerrainHeightAt(GLint x, GLint z);
+	void placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType);
+	GLint getIndex(GLint x, GLint y, GLint z);
+
+	FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, treeHeightNoise;
+	void initializeNoise();
 
 	GLuint textureID;
 	FastNoiseLite noiseGenerator;
@@ -54,5 +63,4 @@ private:
 	std::vector<std::vector<std::vector<GLint>>> chunkData;
 	TextureManager& textureManager;
 
-	World* world;
 };

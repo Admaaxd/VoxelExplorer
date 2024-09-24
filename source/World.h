@@ -4,6 +4,14 @@
 #include "ThreadPool.h"
 #include <unordered_map>
 #include <queue>
+#include <map>
+
+struct BlockChange {
+	GLint localX;
+	GLint localY;
+	GLint localZ;
+	uint8_t blockType;
+};
 
 class World
 {
@@ -17,10 +25,20 @@ public:
 
 	void setBlock(GLint x, GLint y, GLint z, int8_t type);
 
+	void queueBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ, uint8_t blockType);
+
 	struct ChunkCoord {
 		GLint x, z;
+
 		bool operator==(const ChunkCoord& other) const {
 			return x == other.x && z == other.z;
+		}
+
+		bool operator<(const ChunkCoord& other) const {
+			if (x != other.x)
+				return x < other.x;
+			else
+				return z < other.z;
 		}
 	};
 
@@ -49,6 +67,8 @@ private:
 
 	void propagateSunlight(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
 
+	std::vector<BlockChange> getQueuedBlockChanges(GLint chunkX, GLint chunkZ);
+
 	std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash> chunks;
 	std::priority_queue<ChunkCoord, std::vector<ChunkCoord>, ChunkCoordComparator> chunkLoadQueue;
 	GLint playerChunkX, playerChunkZ;
@@ -57,6 +77,9 @@ private:
 	std::unordered_map<ChunkCoord, std::future<Chunk*>, ChunkCoordHash> pendingChunks;
 	std::mutex chunksMutex;
 	ThreadPool threadPool;
+
+	std::map<ChunkCoord, std::vector<BlockChange>> queuedBlockChanges;
+	std::mutex queuedBlockChangesMutex;
 
 	const uint8_t renderDistance = 15;
 

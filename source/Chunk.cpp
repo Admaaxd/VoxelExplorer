@@ -20,54 +20,13 @@ Chunk::~Chunk()
 
 void Chunk::setupChunk()
 {
+    initializeNoise();
     generateChunk();
     generateMesh(blockTypes);
 }
 
 void Chunk::generateChunk()
 {
-    FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise;
-
-    // Base noise
-    baseNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    baseNoise.SetFrequency(0.005f);
-
-    // Elevation noise (general hills and plains)
-    elevationNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    elevationNoise.SetFrequency(0.001f);
-    elevationNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    elevationNoise.SetFractalOctaves(7);
-
-    // Ridge noise (sharp peaks and valleys)
-    ridgeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
-    ridgeNoise.SetFrequency(0.0008f);
-    ridgeNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    ridgeNoise.SetFractalOctaves(5);
-
-    // Mountain noise (sharp peaks)
-    mountainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    mountainNoise.SetFrequency(0.0001f);
-    mountainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    mountainNoise.SetFractalOctaves(7); // For mountainous features
-
-    // Detail noise (fine-grained features)
-    detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    detailNoise.SetFrequency(0.02f);
-    detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    detailNoise.SetFractalOctaves(8); // More octaves for small details
-
-    // Cave noise
-    caveNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    caveNoise.SetFrequency(0.009f);
-    caveNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    caveNoise.SetFractalOctaves(4);
-
-    // Secondary noise for tunnels or smaller cave details
-    secondaryCaveNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
-    secondaryCaveNoise.SetFrequency(0.02f);
-    secondaryCaveNoise.SetFractalType(FastNoiseLite::FractalType_PingPong);
-    secondaryCaveNoise.SetFractalOctaves(6);
-
     blockTypes.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, -1);
 
     uint8_t caveMinHeight = CHUNK_HEIGHT / 64;
@@ -77,30 +36,20 @@ void Chunk::generateChunk()
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
         {
-            GLfloat worldX = static_cast<GLfloat>(chunkX * CHUNK_SIZE + x);
-            GLfloat worldZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
+            GLfloat globalX = static_cast<GLfloat>(chunkX * CHUNK_SIZE + x);
+            GLfloat globalZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
 
-            // Generate base terrain height
-            GLfloat baseHeight = baseNoise.GetNoise(worldX, worldZ);
-            GLfloat elevation = elevationNoise.GetNoise(worldX, worldZ);
-            GLfloat ridge = ridgeNoise.GetNoise(worldX, worldZ) * 0.4f; // Add ridges
-            GLfloat mountains = mountainNoise.GetNoise(worldX, worldZ) * 0.5f; // Add mountainous regions
-            GLfloat detail = detailNoise.GetNoise(worldX, worldZ) * 0.2f; // Add fine-grain details
-
-            // Combine noise layers
-            GLfloat finalHeight = baseHeight + elevation * 0.5f + ridge + mountains + detail;
-
-            uint8_t terrainHeight = static_cast<uint8_t>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
+            GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
-                GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+                GLuint index = getIndex(x, y, z);
 
                 // Primary cave noise
-                GLfloat caveValue = caveNoise.GetNoise(worldX, static_cast<GLfloat>(y), worldZ);
+                GLfloat caveValue = caveNoise.GetNoise(globalX, static_cast<GLfloat>(y), globalZ);
 
                 // Secondary cave noise for tunnels and smaller cavities
-                GLfloat tunnelValue = secondaryCaveNoise.GetNoise(worldX, static_cast<GLfloat>(y), worldZ);
+                GLfloat tunnelValue = secondaryCaveNoise.GetNoise(globalX, static_cast<GLfloat>(y), globalZ);
 
                 // Vary cave thresholds based on height and tunnel values for complexity
                 bool isMainCave = caveValue > 0.35f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
@@ -142,12 +91,26 @@ void Chunk::generateChunk()
                     blockTypes[index] = 1; // Stone layer
                 }
             }
-            // Random tree generation
-            if (terrainHeight > WATERLEVEL + 1)
+        }
+    }
+
+    // Generate trees
+    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
+    {
+        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
+        {
+            GLint globalX = chunkX * CHUNK_SIZE + x;
+            GLint globalZ = chunkZ * CHUNK_SIZE + z;
+
+            GLfloat treeValue = treeNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
+            if (treeValue > 0.935f) // Threshold for tree placement
             {
-                if (blockTypes[x * CHUNK_HEIGHT * CHUNK_SIZE + terrainHeight * CHUNK_SIZE + z] == 2)
+                GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
+
+                if (terrainHeight > WATERLEVEL + 1 && terrainHeight < CHUNK_HEIGHT - 7)
                 {
-                    if (rand() % 1000 < 10)
+                    GLint index = getIndex(x, terrainHeight, z);
+                    if (blockTypes[index] == 2) // Grass block
                     {
                         Structure::generateBaseTree(*this, x, terrainHeight + 1, z);
                     }
@@ -167,6 +130,90 @@ void Chunk::generateChunk()
         }
     }
     isInitialized = true;
+}
+
+void Chunk::initializeNoise()
+{
+    // Base noise
+    baseNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    baseNoise.SetFrequency(0.005f);
+
+    // Elevation noise (general hills and plains)
+    elevationNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    elevationNoise.SetFrequency(0.001f);
+    elevationNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    elevationNoise.SetFractalOctaves(7);
+
+    // Ridge noise (sharp peaks and valleys)
+    ridgeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+    ridgeNoise.SetFrequency(0.0008f);
+    ridgeNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    ridgeNoise.SetFractalOctaves(5);
+
+    // Mountain noise (sharp peaks)
+    mountainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    mountainNoise.SetFrequency(0.0001f);
+    mountainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    mountainNoise.SetFractalOctaves(7);
+
+    // Detail noise (fine-grained features)
+    detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    detailNoise.SetFrequency(0.02f);
+    detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    detailNoise.SetFractalOctaves(8);
+
+    // Cave noise
+    caveNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    caveNoise.SetFrequency(0.009f);
+    caveNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
+    caveNoise.SetFractalOctaves(4);
+
+    // Secondary cave noise for tunnels or smaller cave details
+    secondaryCaveNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+    secondaryCaveNoise.SetFrequency(0.02f);
+    secondaryCaveNoise.SetFractalType(FastNoiseLite::FractalType_PingPong);
+    secondaryCaveNoise.SetFractalOctaves(6);
+
+    // Tree noise (for tree placement)
+    treeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    treeNoise.SetFrequency(0.2f);
+}
+
+GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
+{
+    GLfloat worldX = static_cast<GLfloat>(x);
+    GLfloat worldZ = static_cast<GLfloat>(z);
+
+    // Generate base terrain height
+    GLfloat baseHeight = baseNoise.GetNoise(worldX, worldZ);
+    GLfloat elevation = elevationNoise.GetNoise(worldX, worldZ);
+    GLfloat ridge = ridgeNoise.GetNoise(worldX, worldZ) * 0.4f; // Add ridges
+    GLfloat mountains = mountainNoise.GetNoise(worldX, worldZ) * 0.5f; // Add mountainous regions
+    GLfloat detail = detailNoise.GetNoise(worldX, worldZ) * 0.2f; // Add fine-grain details
+
+    // Combine noise layers
+    GLfloat finalHeight = baseHeight + elevation * 0.5f + ridge + mountains + detail;
+
+    uint8_t terrainHeight = static_cast<uint8_t>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
+
+    return terrainHeight;
+}
+
+void Chunk::placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType)
+{
+    GLint localX = globalX - chunkX * CHUNK_SIZE;
+    GLint localZ = globalZ - chunkZ * CHUNK_SIZE;
+
+    if (localX >= 0 && localX < CHUNK_SIZE && localZ >= 0 && localZ < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT)
+    {
+        GLint index = getIndex(localX, y, localZ);
+        blockTypes[index] = blockType;
+    }
+}
+
+GLint Chunk::getIndex(GLint x, GLint y, GLint z)
+{
+    return x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -494,6 +541,7 @@ void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
     }
     GLint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
     blockTypes[index] = type;
+    needsMeshUpdate = true;
 }
 
 void Chunk::Draw()

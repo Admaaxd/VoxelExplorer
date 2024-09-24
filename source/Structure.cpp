@@ -1,21 +1,38 @@
 #include "Structure.h"
 #include "Chunk.h"
+#include "World.h"
 
 void Structure::generateBaseTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
     uint8_t treeHeight = 5 + rand() % 2;  // Trunk height
 
-    if (y + treeHeight + 3 >= CHUNK_HEIGHT || x - 2 < 0 || x + 2 >= CHUNK_SIZE || z - 2 < 0 || z + 2 >= CHUNK_SIZE) {
-       return; // Temporarily solution :(
-    }
-
     auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
-        int8_t newX = x + offsetX;
-        int8_t newY = y + offsetY;
-        int8_t newZ = z + offsetZ;
-        if (newX >= 0 && newX < CHUNK_SIZE && newY >= 0 && newY < CHUNK_HEIGHT && newZ >= 0 && newZ < CHUNK_SIZE) {
-            chunk.setBlockType(newX, newY, newZ, blockType);
+        int32_t newX = x + offsetX;
+        int32_t newY = y + offsetY;
+        int32_t newZ = z + offsetZ;
+
+        int32_t globalX = chunk.chunkX * CHUNK_SIZE + newX;
+        int32_t globalZ = chunk.chunkZ * CHUNK_SIZE + newZ;
+
+        int32_t targetChunkX = globalX / CHUNK_SIZE;
+        if (globalX < 0 && globalX % CHUNK_SIZE != 0) targetChunkX -= 1;
+
+        int32_t targetChunkZ = globalZ / CHUNK_SIZE;
+        if (globalZ < 0 && globalZ % CHUNK_SIZE != 0) targetChunkZ -= 1;
+
+        int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
+        int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
+
+        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+
+        if (targetChunk) {
+            targetChunk->setBlockType(localX, newY, localZ, blockType);
+            targetChunk->needsMeshUpdate = true;
         }
-        };
+        else {
+            // If the chunk is not loaded, queue the block change
+            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
+        }
+    };
 
     // Trunk
     for (uint8_t i = 0; i < treeHeight; ++i) {
