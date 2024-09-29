@@ -103,16 +103,17 @@ void Chunk::generateChunk()
             GLint globalZ = chunkZ * CHUNK_SIZE + z;
 
             GLfloat treeValue = treeNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
-            if (treeValue > 0.935f) // Threshold for tree placement
+            if (treeValue > 0.95f) // Threshold for tree placement
             {
                 GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
-                if (terrainHeight > WATERLEVEL + 1 && terrainHeight < CHUNK_HEIGHT - 7)
+                if (terrainHeight > WATERLEVEL + 1 && terrainHeight < CHUNK_HEIGHT - 15)
                 {
                     GLint index = getIndex(x, terrainHeight, z);
                     if (blockTypes[index] == 2) // Grass block
                     {
-                        Structure::generateBaseTree(*this, x, terrainHeight + 1, z);
+                        //Structure::generateBaseTree(*this, x, terrainHeight + 1, z);
+                        Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
                     }
                 }
             }
