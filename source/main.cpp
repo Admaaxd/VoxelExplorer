@@ -1,5 +1,6 @@
 #include "main.h"
 
+#pragma region Global Variables
 constexpr GLuint SCR_WIDTH = 1280;
 constexpr GLuint SCR_HEIGHT = 720;
 
@@ -49,6 +50,7 @@ std::vector<std::string> nightFaces
 	"skybox/nightsky/front.jpg",
 	"skybox/nightsky/back.jpg"
 };
+#pragma endregion
 
 int main()
 {
@@ -82,10 +84,7 @@ int main()
 	while (!glfwWindowShouldClose(window))
 	{
 		main::updateFPS();
-
-		main::processInput(window);
 		camera.update(deltaTime);
-		skybox.updateSunAndMoonPosition(deltaTime);
 
 		main::processRendering(window, mainShader, meshingShader, crosshairShader, skybox, player, frustum, world, crosshair, blockOutline);
 
@@ -109,6 +108,10 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& mesh
 	glm::mat4 view = camera.getViewMatrix();
 	glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
 	glm::mat4 model = glm::mat4(1.0f);
+
+	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
+	player.update(deltaTime);
+	skybox.updateSunAndMoonPosition(deltaTime);
 
 	// Update Frustum and World State
 	frustum.update(projection * view);
@@ -297,6 +300,14 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 		player.setSelectedBlockType(selectedBlockType);
 	}
 
+	ImGui::Separator();
+
+	// Flying toggle
+	bool isFlying = player.isFlying();
+	if (ImGui::Checkbox("Enable Flying", &isFlying)) {
+		player.setFlying(isFlying);
+	}
+
 	// Sun speed adjustment
 	ImGui::Separator();
 	ImGui::Text("Sun Settings");
@@ -409,43 +420,6 @@ void main::cleanupImGui() {
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-}
-
-void main::processInput(GLFWwindow* window)
-{
-	// Check for Escape key press
-	bool isEscapePressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
-	if (isEscapePressed && !escapeKeyPressedLastFrame) {
-		// Toggle GUI visibility
-		isGUIEnabled = !isGUIEnabled;
-
-		// Enable or disable the cursor based on GUI state
-		glfwSetInputMode(window, GLFW_CURSOR, isGUIEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
-
-		if (!isGUIEnabled) {
-			// Reset mouse position when GUI is disabled
-			GLdouble xpos, ypos;
-			glfwGetCursorPos(window, &xpos, &ypos);
-			lastX = static_cast<GLfloat>(xpos);
-			lastY = static_cast<GLfloat>(ypos);
-		}
-	}
-	escapeKeyPressedLastFrame = isEscapePressed;
-
-	if (!isGUIEnabled) {
-		// Use a helper function to update movement states
-		updateMovementState(window, GLFW_KEY_W, Direction::FORWARD);
-		updateMovementState(window, GLFW_KEY_S, Direction::BACKWARD);
-		updateMovementState(window, GLFW_KEY_A, Direction::LEFT);
-		updateMovementState(window, GLFW_KEY_D, Direction::RIGHT);
-		updateMovementState(window, GLFW_KEY_SPACE, Direction::UP);
-		updateMovementState(window, GLFW_KEY_LEFT_SHIFT, Direction::DOWN);
-	}
-}
-
-void main::updateMovementState(GLFWwindow* window, GLint key, Direction direction) {
-	bool isKeyPressed = glfwGetKey(window, key) == GLFW_PRESS;
-	camera.setMovementState(direction, isKeyPressed);
 }
 
 void main::mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn)

@@ -1,6 +1,9 @@
 #include "Player.h"
 
-Player::Player(Camera& camera, World& world) : camera(camera), world(world), selectedBlockType(0) {}
+Player::Player(Camera& camera, World& world)
+    : camera(camera), world(world), selectedBlockType(0),
+    position(camera.getPosition()), velocity(0.0f), size(0.6f, 1.8f, 0.6f),
+    isOnGround(false), gravity(-12.0f), jumpStrength(5.5f), movementSpeed(5.0f) {}
 
 void Player::handleMouseInput(GLint button, GLint action, bool isGUIEnabled)
 {
@@ -17,6 +20,71 @@ void Player::handleMouseInput(GLint button, GLint action, bool isGUIEnabled)
 			placeBlock();
 		}
 	}
+}
+
+void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKeyPressedLastFrame, GLfloat& lastX, GLfloat& lastY)
+{
+    bool isEscapePressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+    if (isEscapePressed && !escapeKeyPressedLastFrame) {
+        isGUIEnabled = !isGUIEnabled;
+
+        glfwSetInputMode(window, GLFW_CURSOR, isGUIEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+
+        if (!isGUIEnabled) {
+            GLdouble xpos, ypos;
+            glfwGetCursorPos(window, &xpos, &ypos);
+            lastX = static_cast<GLfloat>(xpos);
+            lastY = static_cast<GLfloat>(ypos);
+        }
+    }
+    escapeKeyPressedLastFrame = isEscapePressed;
+
+    if (!isGUIEnabled) {
+        glm::vec3 movement(0.0f);
+
+        // Move horizontally
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            movement += camera.getLookDirection();
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            movement -= camera.getLookDirection();
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            movement -= camera.getRight();
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            movement += camera.getRight();
+
+        if (glm::length(movement) > 0.0f)
+            movement = glm::normalize(movement);
+
+        bool isShiftPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+
+        GLfloat currentSpeed = flying ? movementSpeed * 5.0f : movementSpeed;
+        if (isShiftPressed && !flying) {
+            currentSpeed += 2.0f;
+        }
+
+        // Set horizontal velocity
+        velocity.x = movement.x * currentSpeed;
+        velocity.z = movement.z * currentSpeed;
+
+        if (flying) {
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                velocity.y = currentSpeed; // Fly up
+            }
+            else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                velocity.y = -currentSpeed; // Fly down
+            }
+            else {
+                velocity.y = 0.0f;
+            }
+        }
+        else {
+            // Regular jumping
+            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && isOnGround) {
+                velocity.y = jumpStrength;
+                isOnGround = false;
+            }
+        }
+    }
 }
 
 bool Player::rayCast(glm::vec3& hitPos, glm::vec3& hitNormal, GLint& blockType) const
@@ -82,7 +150,14 @@ void Player::placeBlock()
     GLint blockType;
     if (rayCast(hitPos, hitNormal, blockType)) {
         glm::vec3 placePos = hitPos + hitNormal;
-        world.setBlock(placePos.x, placePos.y, placePos.z, selectedBlockType);
+        if (!isBlockInsidePlayer(placePos)) 
+        {
+            world.setBlock(placePos.x, placePos.y, placePos.z, selectedBlockType);
+        }
+        else 
+        {
+            return;
+        }
     }
 }
 
@@ -99,4 +174,121 @@ uint8_t Player::getSelectedBlockType() const
 glm::vec3 Player::getLookDirection() const
 {
 	return glm::normalize(camera.getLookDirection());
+}
+
+void Player::update(GLfloat deltaTime) {
+    if (!flying) {
+        // Apply gravity when not flying
+        if (!isOnGround) {
+            velocity.y += gravity * deltaTime;
+        }
+    }
+
+    glm::vec3 newPosition = position + velocity * deltaTime;
+
+    if (!flying) {
+        resolveCollisions(newPosition, deltaTime);
+    }
+    else {
+        position = newPosition;
+    }
+
+    camera.setPosition(position + glm::vec3(0.0f, size.y / 2.0f, 0.0f));
+
+    if (isOnGround && velocity.y < 0) {
+        velocity.y = 0.0f;
+    }
+}
+
+void Player::resolveCollisions(glm::vec3& newPosition, GLfloat deltaTime) {
+    isOnGround = false;
+
+    glm::vec3 futurePosition;
+
+    futurePosition = position;
+    futurePosition.y = newPosition.y;
+
+    if (checkCollision(futurePosition)) {
+        if (velocity.y < 0.0f) {
+            isOnGround = true;
+        }
+        newPosition.y = position.y;
+        velocity.y = 0.0f;
+    }
+
+    futurePosition = position;
+    futurePosition.x = newPosition.x;
+    futurePosition.y = newPosition.y;
+
+    if (checkCollision(futurePosition)) {
+        newPosition.x = position.x;
+        velocity.x = 0.0f;
+    }
+
+    futurePosition = position;
+    futurePosition.z = newPosition.z;
+    futurePosition.y = newPosition.y;
+    futurePosition.x = newPosition.x;
+
+    if (checkCollision(futurePosition)) {
+        newPosition.z = position.z;
+        velocity.z = 0.0f;
+    }
+
+    position = newPosition;
+}
+
+bool Player::isBlockInsidePlayer(const glm::vec3& blockPos) const {
+    // Get the player's AABB
+    glm::vec3 playerMin = position - size * 0.5f;
+    glm::vec3 playerMax = position + size * 0.5f;
+
+    glm::vec3 blockMin = glm::vec3(std::floor(blockPos.x), std::floor(blockPos.y), std::floor(blockPos.z));
+    glm::vec3 blockMax = blockMin + glm::vec3(1.0f, 1.0f, 1.0f);
+
+    bool xOverlap = (playerMin.x < blockMax.x) && (playerMax.x > blockMin.x);
+    bool yOverlap = (playerMin.y < blockMax.y) && (playerMax.y > blockMin.y);
+    bool zOverlap = (playerMin.z < blockMax.z) && (playerMax.z > blockMin.z);
+
+    return xOverlap && yOverlap && zOverlap;
+}
+
+bool Player::checkCollision(const glm::vec3& position) {
+    glm::vec3 min = position - size * 0.5f;
+    glm::vec3 max = position + size * 0.5f;
+
+    for (GLint x = static_cast<GLint>(std::floor(min.x)); x <= static_cast<GLint>(std::floor(max.x)); ++x) {
+        for (GLint y = static_cast<GLint>(std::floor(min.y)); y <= static_cast<GLint>(std::floor(max.y)); ++y) {
+            for (GLint z = static_cast<GLint>(std::floor(min.z)); z <= static_cast<GLint>(std::floor(max.z)); ++z) {
+                int16_t chunkX = (x >= 0) ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
+                int16_t chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
+
+                int16_t localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+                int16_t localY = y;
+                int16_t localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+
+                if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
+                    GLint blockType = chunk->getBlockType(localX, localY, localZ);
+                    if (blockType != -1) {
+                        // Collision detected
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    // No collision
+    return false;
+}
+
+void Player::setFlying(bool enableFlying) {
+    flying = enableFlying;
+    if (flying) {
+        velocity.y = 0.0f;
+    }
+}
+
+bool Player::isFlying() const {
+    return flying;
 }

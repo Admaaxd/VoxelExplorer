@@ -106,7 +106,7 @@ void Structure::generateBaseProceduralTree(Chunk& chunk, uint8_t x, uint8_t y, u
             // Queue the block change if the chunk isn't loaded
             chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
         }
-        };
+    };
 
     for (uint8_t i = 0; i < treeHeight - 1; ++i) 
     {

@@ -16,7 +16,7 @@ enum class Direction {
 
 class Camera {
     glm::mat4 view;
-    glm::vec3 position = { 0, 90, 0 };
+    glm::vec3 position = { 0, 83, 0 };
     glm::vec3 cameraUp = { 0, 1, 0 };
     glm::vec3 lookDirection = { 1, 0, 0 }; // Default forward
 
@@ -59,6 +59,7 @@ public:
     [[nodiscard]] GLfloat getYaw() const { return yaw; }
     [[nodiscard]] GLfloat getPitch() const { return pitch; }
     [[nodiscard]] glm::vec3 getLookDirection() const { return lookDirection; }
+    glm::vec3 getRight() const { return directionVectors.at(Direction::RIGHT); }
     [[nodiscard]] glm::vec3 getPosition() const { return position; }
 
     void setMovementState(Direction dir, bool isMoving);
