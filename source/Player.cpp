@@ -3,7 +3,7 @@
 Player::Player(Camera& camera, World& world)
     : camera(camera), world(world), selectedBlockType(0),
     position(camera.getPosition()), velocity(0.0f), size(0.6f, 1.8f, 0.6f),
-    isOnGround(false), gravity(-12.0f), jumpStrength(5.5f), movementSpeed(5.0f) {}
+    isOnGround(false), gravity(-22.0), jumpStrength(7.2f), movementSpeed(5.0f) {}
 
 void Player::handleMouseInput(GLint button, GLint action, bool isGUIEnabled)
 {
@@ -42,15 +42,24 @@ void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKe
     if (!isGUIEnabled) {
         glm::vec3 movement(0.0f);
 
-        // Move horizontally
+        glm::vec3 lookDirection = camera.getLookDirection();
+        lookDirection.y = 0.0f;
+        if (glm::length(lookDirection) > 0.0f)
+            lookDirection = glm::normalize(lookDirection);
+
+        glm::vec3 rightDirection = camera.getRight();
+        rightDirection.y = 0.0f;
+        if (glm::length(rightDirection) > 0.0f)
+            rightDirection = glm::normalize(rightDirection);
+
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            movement += camera.getLookDirection();
+            movement += lookDirection;
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            movement -= camera.getLookDirection();
+            movement -= lookDirection;
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            movement -= camera.getRight();
+            movement -= rightDirection;
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            movement += camera.getRight();
+            movement += rightDirection;
 
         if (glm::length(movement) > 0.0f)
             movement = glm::normalize(movement);
@@ -59,7 +68,7 @@ void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKe
 
         GLfloat currentSpeed = flying ? movementSpeed * 5.0f : movementSpeed;
         if (isShiftPressed && !flying) {
-            currentSpeed += 2.0f;
+            currentSpeed += 1.8f;
         }
 
         // Set horizontal velocity

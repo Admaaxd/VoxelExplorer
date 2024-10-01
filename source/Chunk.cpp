@@ -294,6 +294,8 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             if (face == 4 || face == 5) return 6;
             else return 7;
         case 6: return 8; // Oak leaf
+        case 7: return 9; // Oak leaf
+        case 8: return 10; // Oak leaf
         default: return 0; // Default to dirt
         }
     };

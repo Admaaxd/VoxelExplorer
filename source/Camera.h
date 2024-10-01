@@ -16,7 +16,7 @@ enum class Direction {
 
 class Camera {
     glm::mat4 view;
-    glm::vec3 position = { 0, 83, 0 };
+    glm::vec3 position = { 2, 89, 10 };
     glm::vec3 cameraUp = { 0, 1, 0 };
     glm::vec3 lookDirection = { 1, 0, 0 }; // Default forward
 

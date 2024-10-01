@@ -30,6 +30,8 @@ private:
         "textures/oak_log_top_bottom.jpg",  // OAK LOG TOP AND BOTTOM -> 6
         "textures/oak_log_side.jpg",        // OAK LOG SIDE -> 7
         "textures/oak_leaf.png",            // OAK LEAF -> 8
+        "textures/gravel.jpg",              // GRAVEL -> 9
+        "textures/cobblestone.jpg",         // COBBLESTONE -> 10
     };
 };
 

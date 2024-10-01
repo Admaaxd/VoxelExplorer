@@ -109,8 +109,6 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& mesh
 	glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
 	glm::mat4 model = glm::mat4(1.0f);
 
-	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
-	player.update(deltaTime);
 	skybox.updateSunAndMoonPosition(deltaTime);
 
 	// Update Frustum and World State
@@ -118,6 +116,9 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& mesh
 	glm::vec3 playerPosition = camera.getPosition();
 	world.updatePlayerPosition(playerPosition);
 	world.processChunkLoadQueue(1);
+
+	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
+	player.update(deltaTime);
 
 	// Clear Buffers
 	glClearColor(0.4f, 0.6f, 0.8f, 1.0f);
@@ -292,7 +293,7 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	ImGui::Separator();
 	ImGui::Text("Select Block Type:");
 	static const char* blockTypeNames[] = {
-		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf",
+		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone",
 	};
 
 	GLint selectedBlockType = player.getSelectedBlockType();

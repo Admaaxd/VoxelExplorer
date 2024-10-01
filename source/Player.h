@@ -43,5 +43,5 @@ private:
 
 	bool isOnGround;
 	GLfloat gravity;
-	bool flying = false;
+	bool flying = true;
 };

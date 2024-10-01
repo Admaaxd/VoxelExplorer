@@ -81,6 +81,6 @@ private:
 	std::map<ChunkCoord, std::vector<BlockChange>> queuedBlockChanges;
 	std::mutex queuedBlockChangesMutex;
 
-	const uint8_t renderDistance = 15;
+	const uint8_t renderDistance = 14;
 
 };
