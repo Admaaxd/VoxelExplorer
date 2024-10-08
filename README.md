@@ -2,8 +2,8 @@
 
 This project is a voxel-based 3D game, similar to Minecraft, developed as part of my thesis.
 
-![Képernyőkép 2024-09-23 095813](https://github.com/user-attachments/assets/6a8dc971-858e-4239-a451-a6cc444e443c)
-![Képernyőkép 2024-09-23 095713](https://github.com/user-attachments/assets/0e353d09-6b62-468c-8b1e-e6d3462e0f05)
+![Képernyőkép 2024-10-08 184754](https://github.com/user-attachments/assets/b0110b21-b076-4193-9672-b5306c178359)
+![Képernyőkép 2024-10-08 185039](https://github.com/user-attachments/assets/443fb5c9-f7b3-40a9-bc44-f201d09fb426)
 ![Képernyőkép 2024-09-23 095536](https://github.com/user-attachments/assets/d8a9d61e-58b9-445f-9028-62b60e7d98bd)
 
 
@@ -22,10 +22,10 @@ This project is a voxel-based 3D game, similar to Minecraft, developed as part o
 - [ ] Transparency
 - [ ] Animated nice water
 - [x] Shadows (todo improve)
-- [ ] Collision detection (AABB)
+- [x] Collision detection (AABB)
 - [x] Fog (todo improve)
 - [ ] Biomes
-- [ ] Grass and flowers
+- [x] Grass and flowers (todo flowers)
 - [ ] Torchlight
 - [ ] Custom textures
 - [ ] Save & loading
