@@ -278,6 +278,12 @@ bool Player::checkCollision(const glm::vec3& position) {
 
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     GLint blockType = chunk->getBlockType(localX, localY, localZ);
+
+                    // Ignore plants during collision checks
+                    if (blockType == 9 || blockType == 10 || blockType == 11) {
+                        continue;
+                    }
+
                     if (blockType != -1) {
                         // Collision detected
                         return true;

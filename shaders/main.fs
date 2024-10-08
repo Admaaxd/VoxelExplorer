@@ -21,8 +21,11 @@ uniform vec4 fogColor;  // Fog color, including alpha
 
 void main()
 {
-    // Base texture color
-    vec3 textureColor = texture(texArray, vec3(texCoord, texLayer)).rgb;
+    // Sample the texture color
+    vec4 texColor = texture(texArray, vec3(texCoord, texLayer));
+    
+    if (texColor.a < 0.95)
+        discard;
 
     // Ambient lighting
     float minAmbient = 0.23;
@@ -61,12 +64,12 @@ void main()
     lighting += (diffuseSun + specularSun) + (diffuseMoon + specularMoon);
 
     // Compute the final lighting result
-    vec3 result = lighting * textureColor;
+    vec3 result = lighting * texColor.rgb;
 
     // --- FOG APPLICATION ---
     // Blend the final result color with the fog color based on the fogFactor
     vec3 finalColor = mix(fogColor.rgb, result, fogFactor);
 
-    // Output the final color with full alpha (1.0)
-    FragColor = vec4(finalColor, 1.0);
+    // Output the final color
+    FragColor = vec4(finalColor, texColor.a);
 }

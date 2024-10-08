@@ -46,8 +46,11 @@ private:
 	GLint getTerrainHeightAt(GLint x, GLint z);
 	void placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType);
 	GLint getIndex(GLint x, GLint y, GLint z);
+	GLint getTextureLayer(int8_t blockType, int8_t face);
 
-	FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, treeHeightNoise;
+	void addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
+
+	FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, treeHeightNoise, grassNoise;
 	void initializeNoise();
 
 	GLuint textureID;

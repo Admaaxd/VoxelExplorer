@@ -120,6 +120,40 @@ void Chunk::generateChunk()
         }
     }
 
+    // Plants
+    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
+    {
+        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
+        {
+            GLint globalX = chunkX * CHUNK_SIZE + x;
+            GLint globalZ = chunkZ * CHUNK_SIZE + z;
+
+            GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
+
+            GLint indexBelow = getIndex(x, terrainHeight, z);
+            GLint indexAbove = getIndex(x, terrainHeight + 1, z);
+
+            if (blockTypes[indexBelow] == 2 && blockTypes[indexAbove] == -1)
+            {
+                // Randomly decide to place grass
+                GLfloat grassChance = grassNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
+                if (grassChance > 0.5f)
+                {
+                    GLint grassType;
+                    GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
+                    if (randomValue < 0.33f)
+                        grassType = 9;
+                    else if (randomValue < 0.66f)
+                        grassType = 10;
+                    else
+                        grassType = 11;
+
+                    blockTypes[indexAbove] = grassType;
+                }
+            }
+        }
+    }
+
     lightLevels.resize(blockTypes.size(), 0);
 
     // Calculate light levels
@@ -178,6 +212,10 @@ void Chunk::initializeNoise()
     // Tree noise (for tree placement)
     treeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     treeNoise.SetFrequency(0.2f);
+
+    // Grass noise (for grass placement)
+    grassNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    grassNoise.SetFrequency(0.9f);
 }
 
 GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
@@ -224,7 +262,7 @@ void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
     for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y) {
         GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
-        if (blockTypes[index] == -1) { // Air block
+        if (blockTypes[index] == -1 || blockTypes[index] == 6 || blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11) { // Air block and transparent blocks
             lightLevels[index] = lightLevel;
         }
         else { // Solid block
@@ -256,11 +294,15 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         return x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
     };
 
+    auto isTransparent = [](GLint blockType) {
+        return blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11;
+    };
+
     auto isExposed = [&](GLint x, GLint y, GLint z, GLint dx, GLint dy, GLint dz) {
         GLint nx = x + dx, ny = y + dy, nz = z + dz;
 
         if (nx >= 0 && ny >= 0 && nz >= 0 && nx < CHUNK_SIZE && nz < CHUNK_SIZE && ny < CHUNK_HEIGHT) {
-            return blockTypes[getIndex(nx, ny, nz)] == -1;
+            return isTransparent(blockTypes[getIndex(nx, ny, nz)]);
         }
 
         GLint neighborChunkX = chunkX, neighborChunkZ = chunkZ;
@@ -274,30 +316,10 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         if (Chunk* neighborChunk = world->getChunk(neighborChunkX, neighborChunkZ)) {
             nx = (nx + CHUNK_SIZE) % CHUNK_SIZE;
             nz = (nz + CHUNK_SIZE) % CHUNK_SIZE;
-            return neighborChunk->getBlockType(nx, ny, nz) == -1;
+            return isTransparent(neighborChunk->getBlockType(nx, ny, nz));
         }
 
         return true;
-    };
-
-    auto getTextureLayer = [&](int8_t blockType, int8_t face) {
-        switch (blockType) {
-        case 0: return 0; // Dirt
-        case 1: return 1; // Stone
-        case 2: // Grass
-            if (face == 4) return 2; // Top face - Grass top
-            else if (face == 5) return 0; // Bottom face - Dirt
-            else return 3; // Side faces - Grass side
-        case 3: return 4; // Sand
-        case 4: return 5; // Water
-        case 5: // Oak log
-            if (face == 4 || face == 5) return 6;
-            else return 7;
-        case 6: return 8; // Oak leaf
-        case 7: return 9; // Oak leaf
-        case 8: return 10; // Oak leaf
-        default: return 0; // Default to dirt
-        }
     };
 
     auto calculateAO = [&](bool side1, bool side2, bool corner) {
@@ -512,6 +534,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 GLint index = getIndex(x, y, z);
                 if (blockTypes[index] == -1) continue;
 
+                if (blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11)
+                {
+                    // Add grass plant mesh
+                    addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
+                    continue;
+                }
+
                 if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1)) processFace(x, y, z, 0);
                 if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1)) processFace(x, y, z, 1);
                 if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2);
@@ -521,6 +550,106 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             }
         }
     }
+}
+
+GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
+{
+    switch (blockType) {
+    case 0: return 0; // Dirt
+    case 1: return 1; // Stone
+    case 2: // Grass block
+        if (face == 4) return 2; // Top face - Grass top
+        else if (face == 5) return 0; // Bottom face - Dirt
+        else return 3; // Side faces - Grass side
+    case 3: return 4; // Sand
+    case 4: return 5; // Water
+    case 5: // Oak log
+        if (face == 4 || face == 5) return 6; // Top and bottom faces
+        else return 7; // Side faces
+    case 6: return 8; // Oak leaf
+    case 7: return 9; // Gravel
+    case 8: return 10; // Cobblestone
+    case 9: return 11; // Grass plant 1
+    case 10: return 12; // Grass plant 2
+    case 11: return 13; // Grass plant 3
+    default: return 0; // Default to dirt
+    }
+}
+
+void Chunk::addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType)
+{
+    GLfloat size = 0.5f;
+
+    // Center the grass plant on the block
+    GLfloat centerX = x + 0.5f;
+    GLfloat centerZ = z + 0.5f;
+
+    GLfloat positions[4][3] = {
+        { centerX - size, y, centerZ - size },
+        { centerX + size, y, centerZ + size },
+        { centerX + size, y + 1.0f, centerZ + size },
+        { centerX - size, y + 1.0f, centerZ - size }
+    };
+
+    GLfloat positions2[4][3] = {
+        { centerX + size, y, centerZ - size },
+        { centerX - size, y, centerZ + size },
+        { centerX - size, y + 1.0f, centerZ + size },
+        { centerX + size, y + 1.0f, centerZ - size }
+    };
+
+    // Texture coordinates
+    GLfloat texCoords[4][2] = {
+        { 0.0f, 0.0f },
+        { 1.0f, 0.0f },
+        { 1.0f, 1.0f },
+        { 0.0f, 1.0f }
+    };
+
+    GLint textureLayer = getTextureLayer(blockType, 0);
+
+    // Set default normals, light level, and AO for grass
+    GLfloat normal[3] = { 0.0f, 1.0f, 0.0f };
+    GLfloat grassLightLevel = 1.0f;
+    GLfloat grassAO = 1.0f;
+
+    // Add first quad
+    for (GLint i = 0; i < 4; ++i)
+    {
+        vertices.insert(vertices.end(), {
+            positions[i][0], positions[i][1], positions[i][2],
+            texCoords[i][0], texCoords[i][1],
+            (GLfloat)textureLayer,
+            normal[0], normal[1], normal[2],
+            grassLightLevel,
+            grassAO
+        });
+    }
+
+    indices.insert(indices.end(), {
+        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 1, static_cast<GLuint>(vertexOffset) + 2,
+        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 2, static_cast<GLuint>(vertexOffset) + 3
+        });
+    vertexOffset += 4;
+
+    // Add second quad
+    for (GLint i = 0; i < 4; ++i)
+    {
+        vertices.insert(vertices.end(), {
+            positions2[i][0], positions2[i][1], positions2[i][2],
+            texCoords[i][0], texCoords[i][1],
+            (GLfloat)textureLayer,
+            normal[0], normal[1], normal[2],
+            grassLightLevel,
+            grassAO
+        });
+    }
+
+    indices.insert(indices.end(), {
+        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 1, static_cast<GLuint>(vertexOffset) + 2,
+        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 2, static_cast<GLuint>(vertexOffset) + 3
+    });
+    vertexOffset += 4;
 }
 
 GLint Chunk::getBlockType(GLint x, GLint y, GLint z) const {
@@ -549,11 +678,20 @@ void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
 
 void Chunk::Draw()
 {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_CULL_FACE);
+
     glBindVertexArray(VAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+
+    glDisable(GL_BLEND);
 }
 
 void Chunk::updateOpenGLBuffers()

@@ -23,8 +23,8 @@ private:
     {
         "textures/dirt.jpg",                // DIRT -> 0
         "textures/stone.jpg",               // STONE -> 1
-        "textures/grass_top.jpg",           // GRASS TOP -> 2
-        "textures/grass_side.jpg",          // GRASS SIDE -> 3
+        "textures/grass_top.jpg",           // GRASS BLOCK TOP -> 2
+        "textures/grass_side.jpg",          // GRASS BLOCK SIDE -> 3
         "textures/sand.jpg",                // SAND -> 4
         "textures/water.jpg",               // WATER -> 5
         "textures/oak_log_top_bottom.jpg",  // OAK LOG TOP AND BOTTOM -> 6
@@ -32,6 +32,9 @@ private:
         "textures/oak_leaf.png",            // OAK LEAF -> 8
         "textures/gravel.jpg",              // GRAVEL -> 9
         "textures/cobblestone.jpg",         // COBBLESTONE -> 10
+        "textures/grass1.png",              // GRASS 1 -> 11
+        "textures/grass2.png",              // GRASS 2 -> 12
+        "textures/grass3.png",              // GRASS 3 -> 13
     };
 };
 
