@@ -32,10 +32,11 @@ private:
         "textures/oak_leaf.png",            // OAK LEAF -> 8
         "textures/gravel.jpg",              // GRAVEL -> 9
         "textures/cobblestone.jpg",         // COBBLESTONE -> 10
-        "textures/flower1.png",             // FLOWER 1 -> 11
-        "textures/grass1.png",              // GRASS 1 -> 12
-        "textures/grass2.png",              // GRASS 2 -> 13
-        "textures/grass3.png",              // GRASS 3 -> 14
+        "textures/glass.png",               // GLASS -> 11
+        "textures/flower1.png",             // FLOWER 1 -> 12
+        "textures/grass1.png",              // GRASS 1 -> 13
+        "textures/grass2.png",              // GRASS 2 -> 14
+        "textures/grass3.png",              // GRASS 3 -> 15
         
     };
 };

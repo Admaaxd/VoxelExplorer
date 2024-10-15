@@ -141,17 +141,17 @@ void Chunk::generateChunk()
                     GLint grassType;
                     GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
                     if (randomValue < 0.33f)
-                        grassType = 10; // Grass 1
+                        grassType = 11; // Grass 1
                     else if (randomValue < 0.67f)
-                        grassType = 11; // Grass 2
+                        grassType = 12; // Grass 2
                     else
-                        grassType = 12; // Grass 3
+                        grassType = 13; // Grass 3
 
                     blockTypes[indexAbove] = grassType;
                 }
                 else if (flowerChance > 0.90f)
                 {
-                    blockTypes[indexAbove] = 9; // Flower 1
+                    blockTypes[indexAbove] = 10; // Flower 1
                 }
                 // Else, other flowers in the future
             }
@@ -266,7 +266,8 @@ void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
     for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y) {
         GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
-        if (blockTypes[index] == -1 || blockTypes[index] == 6 || blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12) { // Air block and transparent blocks
+        if (blockTypes[index] == -1 || blockTypes[index] == 6 ||  blockTypes[index] == 9 || blockTypes[index] == 10 ||
+            blockTypes[index] == 11 || blockTypes[index] == 12 || blockTypes[index] == 13) { // Air block and transparent blocks
             lightLevels[index] = lightLevel;
         }
         else { // Solid block
@@ -299,7 +300,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     };
 
     auto isTransparent = [](GLint blockType) {
-        return blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12;
+        return blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
     };
 
     auto isExposed = [&](GLint x, GLint y, GLint z, GLint dx, GLint dy, GLint dz) {
@@ -538,7 +539,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 GLint index = getIndex(x, y, z);
                 if (blockTypes[index] == -1) continue;
 
-                if (blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12) // Flower 1 9, Grass 1 10, Grass 2 11, Grass 3 12
+                if (blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12 || blockTypes[index] == 13) // Flower 1 10, Grass 1 11, Grass 2 12, Grass 3 13
                 {
                     // Add grass plant mesh
                     addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
@@ -573,10 +574,12 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case 6: return 8; // Oak leaf
     case 7: return 9; // Gravel
     case 8: return 10; // Cobblestone
-    case 9: return 11; // Flower 1
-    case 10: return 12; // Grass plant 1
-    case 11: return 13; // Grass plant 2
-    case 12: return 14; // Grass plant 3
+    case 9: return 11; // Glass
+
+    case 10: return 12; // Flower 1
+    case 11: return 13; // Grass plant 1
+    case 12: return 14; // Grass plant 2
+    case 13: return 15; // Grass plant 3
     
     default: return 0; // Default to dirt
     }

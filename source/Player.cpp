@@ -204,7 +204,7 @@ void Player::placeBlock() {
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
             GLint blockType = chunk->getBlockType(localX, localY, localZ);
 
-            if (blockType == 10 || blockType == 11 || blockType == 12) {
+            if (blockType == 11 || blockType == 12 || blockType == 13) {
                 chunk->setBlockType(localX, localY, localZ, selectedBlockType);
                 return;
             }
@@ -325,7 +325,7 @@ bool Player::checkCollision(const glm::vec3& position) {
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     GLint blockType = chunk->getBlockType(localX, localY, localZ);
                     // Ignore non-solid blocks
-                    if (blockType == -1 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 9) {
+                    if (blockType == -1 || blockType == 11 || blockType == 12 || blockType == 13 || blockType == 10) {
                         continue; // No collision
                     }
                     // Collision detected
