@@ -45,15 +45,12 @@ void Chunk::generateChunk()
             {
                 GLuint index = getIndex(x, y, z);
 
-                // Primary cave noise
+                // cave noise
                 GLfloat caveValue = caveNoise.GetNoise(globalX, static_cast<GLfloat>(y), globalZ);
-
-                // Secondary cave noise for tunnels and smaller cavities
-                GLfloat tunnelValue = secondaryCaveNoise.GetNoise(globalX, static_cast<GLfloat>(y), globalZ);
 
                 // Vary cave thresholds based on height and tunnel values for complexity
                 bool isMainCave = caveValue > 0.35f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
-                bool isTunnel = tunnelValue > 0.5f && caveValue > 0.25f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer - 20);
+                bool isTunnel = caveValue > 0.30f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer - 20);
 
                 if (isMainCave || isTunnel)
                 {
@@ -202,12 +199,6 @@ void Chunk::initializeNoise()
     caveNoise.SetFrequency(0.009f);
     caveNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     caveNoise.SetFractalOctaves(4);
-
-    // Secondary cave noise for tunnels or smaller cave details
-    secondaryCaveNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
-    secondaryCaveNoise.SetFrequency(0.02f);
-    secondaryCaveNoise.SetFractalType(FastNoiseLite::FractalType_PingPong);
-    secondaryCaveNoise.SetFractalOctaves(6);
 
     // Tree noise (for tree placement)
     treeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);

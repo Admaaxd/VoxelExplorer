@@ -35,8 +35,8 @@ void main()
     float distance = length(worldPos.xyz - cameraPosition);
 
     // Fog parameters
-    float fogStart = 50.0;  // Fog starts at this distance
-    float fogEnd = 205.0;   // Fog fully takes over at this distance
+    float fogStart = 45.0;  // Fog starts at this distance
+    float fogEnd = 180.0;   // Fog fully takes over at this distance
 
     // Calculate the fog factor (linear interpolation between fogStart and fogEnd)
     fogFactor = clamp((fogEnd - distance) / (fogEnd - fogStart), 0.0, 1.0);

@@ -50,7 +50,7 @@ private:
 
 	void addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
 
-	FastNoiseLite baseNoise, elevationNoise, caveNoise, secondaryCaveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, treeHeightNoise, grassNoise;
+	FastNoiseLite baseNoise, elevationNoise, caveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, treeHeightNoise, grassNoise;
 	void initializeNoise();
 
 	GLuint textureID;

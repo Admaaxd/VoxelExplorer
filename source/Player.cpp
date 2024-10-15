@@ -65,10 +65,41 @@ void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKe
             movement = glm::normalize(movement);
 
         bool isShiftPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+        bool isCtrlPressed = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
 
         GLfloat currentSpeed = flying ? movementSpeed * 5.0f : movementSpeed;
-        if (isShiftPressed && !flying) {
-            currentSpeed += 1.8f;
+        if (isShiftPressed && !flying) currentSpeed += 1.8f;
+
+        if (isCtrlPressed && !flying)
+        {
+            currentSpeed /= 2.0f;
+            if (size.y != 1.5f)
+            {
+                position.y -= (1.8f - 1.5f) / 2.0f;
+                size = { 0.6f, 1.5f, 0.6f };
+            }
+        }
+        else if (!isCtrlPressed && !flying)
+        {
+            if (size.y != 1.8f)
+            {
+                glm::vec3 testPosition = position;
+                testPosition.y += (1.8f - 1.5f) / 2.0f;
+
+                glm::vec3 oldSize = size;
+                size = { 0.6f, 1.8f, 0.6f };
+                bool canStandUp = !checkCollision(testPosition);
+
+                if (canStandUp)
+                {
+                    position.y += (1.8f - 1.5f) / 2.0f;
+                    size = { 0.6f, 1.8f, 0.6f };
+                }
+                else
+                {
+                    size = oldSize;
+                }
+            }
         }
 
         // Set horizontal velocity
@@ -153,19 +184,34 @@ void Player::removeBlock()
     }
 }
 
-void Player::placeBlock()
-{
+void Player::placeBlock() {
     glm::vec3 hitPos, hitNormal;
     GLint blockType;
     if (rayCast(hitPos, hitNormal, blockType)) {
         glm::vec3 placePos = hitPos + hitNormal;
-        if (!isBlockInsidePlayer(placePos)) 
-        {
-            world.setBlock(placePos.x, placePos.y, placePos.z, selectedBlockType);
+        glm::vec3 blockToReplace = hitPos;
+
+        int16_t chunkX = (blockToReplace.x >= 0) ? static_cast<int16_t>(blockToReplace.x / CHUNK_SIZE) : static_cast<int16_t>((blockToReplace.x + 1) / CHUNK_SIZE) - 1;
+        int16_t chunkZ = (blockToReplace.z >= 0) ? static_cast<int16_t>(blockToReplace.z / CHUNK_SIZE) : static_cast<int16_t>((blockToReplace.z + 1) / CHUNK_SIZE) - 1;
+
+        int16_t localX = static_cast<int16_t>(blockToReplace.x) - (chunkX * CHUNK_SIZE);
+        int16_t localY = static_cast<int16_t>(std::floor(blockToReplace.y));
+        int16_t localZ = static_cast<int16_t>(blockToReplace.z) - (chunkZ * CHUNK_SIZE);
+
+        localX = (localX + CHUNK_SIZE) % CHUNK_SIZE;
+        localZ = (localZ + CHUNK_SIZE) % CHUNK_SIZE;
+
+        if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
+            GLint blockType = chunk->getBlockType(localX, localY, localZ);
+
+            if (blockType == 9 || blockType == 10 || blockType == 11) {
+                chunk->setBlockType(localX, localY, localZ, selectedBlockType);
+                return;
+            }
         }
-        else 
-        {
-            return;
+
+        if (!isBlockInsidePlayer(placePos)) {
+            world.setBlock(placePos.x, placePos.y, placePos.z, selectedBlockType);
         }
     }
 }
@@ -278,16 +324,12 @@ bool Player::checkCollision(const glm::vec3& position) {
 
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     GLint blockType = chunk->getBlockType(localX, localY, localZ);
-
-                    // Ignore plants during collision checks
-                    if (blockType == 9 || blockType == 10 || blockType == 11) {
-                        continue;
+                    // Ignore non-solid blocks
+                    if (blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11) {
+                        continue; // No collision
                     }
-
-                    if (blockType != -1) {
-                        // Collision detected
-                        return true;
-                    }
+                    // Collision detected
+                    return true;
                 }
             }
         }
