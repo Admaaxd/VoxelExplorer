@@ -19,13 +19,13 @@ This project is a voxel-based 3D game, similar to Minecraft, developed as part o
 - [x] Skybox
 - [x] Day & night cycle
 - [x] GUI integration using Dear ImGui
-- [ ] Transparency
+- [x] Transparency
 - [ ] Animated nice water
 - [x] Shadows (todo improve)
 - [x] Collision detection (AABB)
 - [x] Fog (todo improve)
 - [ ] Biomes
-- [x] Grass and flowers (todo flowers)
+- [x] Grass and flowers
 - [ ] Torchlight
 - [ ] Custom textures
 - [ ] Save & loading
