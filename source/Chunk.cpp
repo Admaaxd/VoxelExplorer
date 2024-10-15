@@ -300,31 +300,54 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     };
 
     auto isTransparent = [](GLint blockType) {
-        return blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
+        return blockType == -1 || blockType == 6 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
     };
 
-    auto isExposed = [&](GLint x, GLint y, GLint z, GLint dx, GLint dy, GLint dz) {
+    auto isAir = [](GLint blockType) {
+        return blockType == -1;
+    };
+
+    auto isExposed = [&](GLint x, GLint y, GLint z, GLint dx, GLint dy, GLint dz, GLint blockType) {
         GLint nx = x + dx, ny = y + dy, nz = z + dz;
+        GLint neighborBlockType = -1; // Default to air
 
-        if (nx >= 0 && ny >= 0 && nz >= 0 && nx < CHUNK_SIZE && nz < CHUNK_SIZE && ny < CHUNK_HEIGHT) {
-            return isTransparent(blockTypes[getIndex(nx, ny, nz)]);
+        if (nx >= 0 && ny >= 0 && nz >= 0 && nx < CHUNK_SIZE && ny < CHUNK_HEIGHT && nz < CHUNK_SIZE) {
+            neighborBlockType = blockTypes[getIndex(nx, ny, nz)];
+        }
+        else {
+            // Handle neighboring chunks
+            GLint neighborChunkX = chunkX, neighborChunkZ = chunkZ;
+
+            if (nx < 0) neighborChunkX -= 1;
+            else if (nx >= CHUNK_SIZE) neighborChunkX += 1;
+
+            if (nz < 0) neighborChunkZ -= 1;
+            else if (nz >= CHUNK_SIZE) neighborChunkZ += 1;
+
+            if (Chunk* neighborChunk = world->getChunk(neighborChunkX, neighborChunkZ)) {
+                nx = (nx + CHUNK_SIZE) % CHUNK_SIZE;
+                nz = (nz + CHUNK_SIZE) % CHUNK_SIZE;
+                neighborBlockType = neighborChunk->getBlockType(nx, ny, nz);
+            }
+            else {
+                neighborBlockType = -1;
+            }
         }
 
-        GLint neighborChunkX = chunkX, neighborChunkZ = chunkZ;
-
-        if (nx < 0) neighborChunkX -= 1;
-        else if (nx >= CHUNK_SIZE) neighborChunkX += 1;
-
-        if (nz < 0) neighborChunkZ -= 1;
-        else if (nz >= CHUNK_SIZE) neighborChunkZ += 1;
-
-        if (Chunk* neighborChunk = world->getChunk(neighborChunkX, neighborChunkZ)) {
-            nx = (nx + CHUNK_SIZE) % CHUNK_SIZE;
-            nz = (nz + CHUNK_SIZE) % CHUNK_SIZE;
-            return isTransparent(neighborChunk->getBlockType(nx, ny, nz));
+        if (isAir(neighborBlockType)) {
+            return true; // Exposed to air
         }
 
-        return true;
+        if (neighborBlockType == blockType) {
+            return false; // Same block type; do not expose face
+        }
+
+        if (isTransparent(blockType)) {
+            return true; // Transparent block; expose face if neighbor is different
+        }
+        else {
+            return isTransparent(neighborBlockType); // Opaque block; expose face if neighbor is transparent
+        }
     };
 
     auto calculateAO = [&](bool side1, bool side2, bool corner) {
@@ -346,13 +369,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         switch (face) {
         case 0: // Back face
 
-            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, -1, 1, 0));
-            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 1, 1, 0));
-            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, -1, -1, 0));
-            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 1, -1, 0));
+            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 0, blockType));
+            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 0, blockType));
+            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 0, blockType));
+            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 0, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].back && isExposed(x, y + extentY, z, 0, 0, -1)) {
+                !processed[x][y + extentY][z].back && isExposed(x, y + extentY, z, 0, 0, -1, blockType)) {
                 processed[x][y + extentY][z].back = true;
                 extentY++;
             }
@@ -362,7 +385,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x + extentX, y + dy, z)] != blockType ||
                         processed[x + extentX][y + dy][z].back ||
-                        !isExposed(x + extentX, y + dy, z, 0, 0, -1)) {
+                        !isExposed(x + extentX, y + dy, z, 0, 0, -1, blockType)) {
                         canExtend = false;
                         break;
                     }
@@ -378,13 +401,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 1: // Front face
 
-            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, -1, 1, 1));
-            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 1, 1, 1));
-            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, -1, -1, 1));
-            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 1, -1, 1));
+            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 1, blockType));
+            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 1, blockType));
+            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 1, blockType));
+            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 1, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].front && isExposed(x, y + extentY, z, 0, 0, 1)) {
+                !processed[x][y + extentY][z].front && isExposed(x, y + extentY, z, 0, 0, 1, blockType)) {
                 processed[x][y + extentY][z].front = true;
                 extentY++;
             }
@@ -394,7 +417,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x + extentX, y + dy, z)] != blockType ||
                         processed[x + extentX][y + dy][z].front ||
-                        !isExposed(x + extentX, y + dy, z, 0, 0, 1)) {
+                        !isExposed(x + extentX, y + dy, z, 0, 0, 1, blockType)) {
                         canExtend = false;
                         break;
                     }
@@ -410,13 +433,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 2: // Left face
 
-            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, -1));
-            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, 1));
-            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, -1));
-            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, 1));
+            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
+            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
+            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
+            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].left && isExposed(x, y + extentY, z, -1, 0, 0)) {
+                !processed[x][y + extentY][z].left && isExposed(x, y + extentY, z, -1, 0, 0, blockType)) {
                 processed[x][y + extentY][z].left = true;
                 extentY++;
             }
@@ -426,7 +449,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x, y + dy, z + extentX)] != blockType ||
                         processed[x][y + dy][z + extentX].left ||
-                        !isExposed(x, y + dy, z + extentX, -1, 0, 0)) {
+                        !isExposed(x, y + dy, z + extentX, -1, 0, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
@@ -442,13 +465,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 3: // Right face
 
-            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, -1));
-            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, 1, 0), isExposed(x, y, z, 0, 1, 1));
-            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, -1));
-            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 0, -1, 0), isExposed(x, y, z, 0, -1, 1));
+            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
+            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
+            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
+            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].right && isExposed(x, y + extentY, z, 1, 0, 0)) {
+                !processed[x][y + extentY][z].right && isExposed(x, y + extentY, z, 1, 0, 0, blockType)) {
                 processed[x][y + extentY][z].right = true;
                 extentY++;
             }
@@ -458,7 +481,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 for (GLint dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x, y + dy, z + extentX)] != blockType ||
                         processed[x][y + dy][z + extentX].right ||
-                        !isExposed(x, y + dy, z + extentX, 1, 0, 0)) {
+                        !isExposed(x, y + dy, z + extentX, 1, 0, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
@@ -475,7 +498,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         case 4: // Top face
 
             while (z + extentY < CHUNK_SIZE && blockTypes[getIndex(x, y, z + extentY)] == blockType &&
-                !processed[x][y][z + extentY].top && isExposed(x, y, z + extentY, 0, 1, 0)) {
+                !processed[x][y][z + extentY].top && isExposed(x, y, z + extentY, 0, 1, 0, blockType)) {
                 processed[x][y][z + extentY].top = true;
                 extentY++;
             }
@@ -485,7 +508,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 for (GLint dz = 0; dz < extentY; ++dz) {
                     if (blockTypes[getIndex(x + extentX, y, z + dz)] != blockType ||
                         processed[x + extentX][y][z + dz].top ||
-                        !isExposed(x + extentX, y, z + dz, 0, 1, 0)) {
+                        !isExposed(x + extentX, y, z + dz, 0, 1, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
@@ -501,13 +524,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 5: // Bottom face
 
-            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, -1, 0, -1));
-            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, -1), isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 1, 0, -1));
-            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, -1, 0, 0), isExposed(x, y, z, -1, 0, 1));
-            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1), isExposed(x, y, z, 1, 0, 0), isExposed(x, y, z, 1, 0, 1));
+            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, -1, blockType));
+            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, -1, blockType));
+            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, 1, blockType));
+            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, 1, blockType));
 
             while (z + extentY < CHUNK_SIZE && blockTypes[getIndex(x, y, z + extentY)] == blockType &&
-                !processed[x][y][z + extentY].bottom && isExposed(x, y, z + extentY, 0, -1, 0)) {
+                !processed[x][y][z + extentY].bottom && isExposed(x, y, z + extentY, 0, -1, 0, blockType)) {
                 processed[x][y][z + extentY].bottom = true;
                 extentY++;
             }
@@ -517,7 +540,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 for (GLint dz = 0; dz < extentY; ++dz) {
                     if (blockTypes[getIndex(x + extentX, y, z + dz)] != blockType ||
                         processed[x + extentX][y][z + dz].bottom ||
-                        !isExposed(x + extentX, y, z + dz, 0, -1, 0)) {
+                        !isExposed(x + extentX, y, z + dz, 0, -1, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
@@ -537,6 +560,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         for (GLint y = 0; y < CHUNK_HEIGHT; ++y) {
             for (GLint z = 0; z < CHUNK_SIZE; ++z) {
                 GLint index = getIndex(x, y, z);
+                GLint blockType = blockTypes[index];
                 if (blockTypes[index] == -1) continue;
 
                 if (blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12 || blockTypes[index] == 13) // Flower 1 10, Grass 1 11, Grass 2 12, Grass 3 13
@@ -546,12 +570,12 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     continue;
                 }
 
-                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1)) processFace(x, y, z, 0);
-                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1)) processFace(x, y, z, 1);
-                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0)) processFace(x, y, z, 2);
-                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0)) processFace(x, y, z, 3);
-                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0)) processFace(x, y, z, 4);
-                if (!processed[x][y][z].bottom && y > 0 && isExposed(x, y, z, 0, -1, 0)) processFace(x, y, z, 5);
+                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1, blockType)) processFace(x, y, z, 0);
+                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1, blockType)) processFace(x, y, z, 1);
+                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0, blockType)) processFace(x, y, z, 2);
+                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0, blockType)) processFace(x, y, z, 3);
+                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0, blockType)) processFace(x, y, z, 4);
+                if (!processed[x][y][z].bottom && y > 0 && isExposed(x, y, z, 0, -1, 0, blockType)) processFace(x, y, z, 5);
             }
         }
     }
