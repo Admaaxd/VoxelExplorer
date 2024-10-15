@@ -100,13 +100,12 @@ int main()
 	return 0;
 }
 
-
 void main::processRendering(GLFWwindow* window, shader& mainShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox, 
 	Player& player, Frustum& frustum, World& world, Crosshair& crosshair, BlockOutline& blockOutline) 
 {
 	// Prepare matrices
 	glm::mat4 view = camera.getViewMatrix();
-	glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 330.0f);
+	glm::mat4 projection = glm::perspective(glm::radians(75.0f), (GLfloat)(SCR_WIDTH / (GLfloat)SCR_HEIGHT), 0.1f, 320.0f);
 	glm::mat4 model = glm::mat4(1.0f);
 
 	skybox.updateSunAndMoonPosition(deltaTime);
@@ -293,7 +292,7 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	ImGui::Separator();
 	ImGui::Text("Select Block Type:");
 	static const char* blockTypeNames[] = {
-		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone",
+		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone", "Flower"
 	};
 
 	GLint selectedBlockType = player.getSelectedBlockType();

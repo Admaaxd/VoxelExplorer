@@ -132,21 +132,28 @@ void Chunk::generateChunk()
 
             if (blockTypes[indexBelow] == 2 && blockTypes[indexAbove] == -1)
             {
-                // Randomly decide to place grass
                 GLfloat grassChance = grassNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
-                if (grassChance > 0.5f)
+                GLfloat flowerChance = flowerNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
+
+                if (grassChance > 0.5f && grassChance > flowerChance)
                 {
+                    // Place grass
                     GLint grassType;
                     GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
                     if (randomValue < 0.33f)
-                        grassType = 9;
-                    else if (randomValue < 0.66f)
-                        grassType = 10;
+                        grassType = 10; // Grass 1
+                    else if (randomValue < 0.67f)
+                        grassType = 11; // Grass 2
                     else
-                        grassType = 11;
+                        grassType = 12; // Grass 3
 
                     blockTypes[indexAbove] = grassType;
                 }
+                else if (flowerChance > 0.90f)
+                {
+                    blockTypes[indexAbove] = 9; // Flower 1
+                }
+                // Else, other flowers in the future
             }
         }
     }
@@ -182,13 +189,13 @@ void Chunk::initializeNoise()
     ridgeNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     ridgeNoise.SetFractalOctaves(5);
 
-    // Mountain noise (sharp peaks)
+    // Mountain noise
     mountainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     mountainNoise.SetFrequency(0.0001f);
     mountainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     mountainNoise.SetFractalOctaves(7);
 
-    // Detail noise (fine-grained features)
+    // Detail noise
     detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     detailNoise.SetFrequency(0.02f);
     detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -200,13 +207,19 @@ void Chunk::initializeNoise()
     caveNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
     caveNoise.SetFractalOctaves(4);
 
-    // Tree noise (for tree placement)
+    // Tree noise
     treeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     treeNoise.SetFrequency(0.2f);
 
-    // Grass noise (for grass placement)
+    // Grass noise
     grassNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    grassNoise.SetSeed(10);
     grassNoise.SetFrequency(0.9f);
+
+    // Flower noise
+    flowerNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    flowerNoise.SetSeed(10 + 1);
+    flowerNoise.SetFrequency(0.9f);
 }
 
 GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
@@ -253,7 +266,7 @@ void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
     for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y) {
         GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
-        if (blockTypes[index] == -1 || blockTypes[index] == 6 || blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11) { // Air block and transparent blocks
+        if (blockTypes[index] == -1 || blockTypes[index] == 6 || blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12) { // Air block and transparent blocks
             lightLevels[index] = lightLevel;
         }
         else { // Solid block
@@ -286,7 +299,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     };
 
     auto isTransparent = [](GLint blockType) {
-        return blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11;
+        return blockType == -1 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12;
     };
 
     auto isExposed = [&](GLint x, GLint y, GLint z, GLint dx, GLint dy, GLint dz) {
@@ -525,7 +538,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 GLint index = getIndex(x, y, z);
                 if (blockTypes[index] == -1) continue;
 
-                if (blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11)
+                if (blockTypes[index] == 9 || blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12) // Flower 1 9, Grass 1 10, Grass 2 11, Grass 3 12
                 {
                     // Add grass plant mesh
                     addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
@@ -560,9 +573,11 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case 6: return 8; // Oak leaf
     case 7: return 9; // Gravel
     case 8: return 10; // Cobblestone
-    case 9: return 11; // Grass plant 1
-    case 10: return 12; // Grass plant 2
-    case 11: return 13; // Grass plant 3
+    case 9: return 11; // Flower 1
+    case 10: return 12; // Grass plant 1
+    case 11: return 13; // Grass plant 2
+    case 12: return 14; // Grass plant 3
+    
     default: return 0; // Default to dirt
     }
 }
