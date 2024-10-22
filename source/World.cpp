@@ -38,6 +38,23 @@ void World::Draw(const Frustum& frustum) {
 	}
 }
 
+void World::DrawWater(const Frustum& frustum) {
+	for (auto& pair : chunks) {
+		Chunk* chunk = pair.second;
+		if (chunk) {
+			if (chunk->needsMeshUpdate) {
+				chunk->generateMesh(chunk->getBlockTypes());
+				chunk->updateOpenGLBuffers();
+				chunk->needsMeshUpdate = false;
+			}
+			if (chunk->isInFrustum(frustum)) {
+				chunk->DrawWater();
+				chunk->updateOpenGLBuffers();
+			}
+		}
+	}
+}
+
 void World::updatePlayerPosition(const glm::vec3& position)
 {
 	GLint newChunkX = static_cast<GLint>(std::floor(position.x / static_cast<GLint>(CHUNK_SIZE)));
@@ -92,10 +109,7 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 		if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
 		{
 			Chunk* chunk = it->second.get();
-			{
-				std::lock_guard<std::mutex> lock(chunksMutex);
-				chunks[it->first] = chunk;
-			}
+			addChunk(chunk);
 			it = pendingChunks.erase(it);
 		}
 		else {
@@ -107,6 +121,37 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 	for (const auto& coord : tempUnloadList) {
 		unloadChunk(coord.x, coord.z);
 	}
+}
+
+void World::addChunk(Chunk* chunk) {
+	ChunkCoord coord = { chunk->getChunkX(), chunk->getChunkZ() };
+	{
+		std::lock_guard<std::mutex> lock(chunksMutex);
+		chunks[coord] = chunk;
+	}
+	notifyNeighbors(chunk);
+}
+
+void World::notifyNeighbors(Chunk* chunk) {
+	GLint chunkX = chunk->getChunkX(), chunkZ = chunk->getChunkZ();
+
+	GLint offsets[4][2] = {
+		{-1, 0}, // Left
+		{1, 0},  // Right
+		{0, -1}, // Back
+		{0, 1}   // Front
+	};
+
+	for (GLint i = 0; i < 4; ++i) {
+		GLint neighborX = chunkX + offsets[i][0];
+		GLint neighborZ = chunkZ + offsets[i][1];
+		Chunk* neighborChunk = getChunk(neighborX, neighborZ);
+		if (neighborChunk) {
+			neighborChunk->needsMeshUpdate = true;
+		}
+	}
+
+	chunk->needsMeshUpdate = true;
 }
 
 void World::queueBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ, uint8_t blockType) {
@@ -182,10 +227,6 @@ void World::loadChunk(GLint x, GLint z) {
 				chunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
 			}
 
-			{
-				std::lock_guard<std::mutex> lock(chunksMutex);
-				chunks[coord] = chunk;
-			}
 			return chunk;
 		});
 
@@ -252,9 +293,8 @@ bool World::isWithinRenderDistance(GLint x, GLint z) const
 	return std::abs(x - playerChunkX) <= renderDistance && std::abs(z - playerChunkZ) <= renderDistance;
 }
 
-bool World::ChunkCoordComparator::operator()(const ChunkCoord& a, const ChunkCoord& b) const
-{
-	auto distA = std::sqrt(std::pow(a.x - world.playerChunkX, 2) + std::pow(a.z - world.playerChunkZ, 2));
-	auto distB = std::sqrt(std::pow(b.x - world.playerChunkX, 2) + std::pow(b.z - world.playerChunkZ, 2));
-	return distA > distB;
+bool World::ChunkCoordComparator::operator()(const ChunkCoord& a, const ChunkCoord& b) const {
+    float distA = std::abs(a.x - world.playerChunkX) + std::abs(a.z - world.playerChunkZ);
+    float distB = std::abs(b.x - world.playerChunkX) + std::abs(b.z - world.playerChunkZ);
+    return distA > distB;
 }

@@ -66,6 +66,7 @@ int main()
 	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
 	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
 	SkyboxRenderer skybox(dayFaces, nightFaces ,"skybox/sun.png", "skybox/moon.png");
+	shader waterShader("shaders/water.vs", "shaders/water.fs");
 	Crosshair crosshair;
 	crosshair.initialize();
 	BlockOutline blockOutline;
@@ -86,7 +87,7 @@ int main()
 		main::updateFPS();
 		camera.update(deltaTime);
 
-		main::processRendering(window, mainShader, meshingShader, crosshairShader, skybox, player, frustum, world, crosshair, blockOutline);
+		main::processRendering(window, mainShader, waterShader, meshingShader, crosshairShader, skybox, player, frustum, world, crosshair, blockOutline);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -100,7 +101,7 @@ int main()
 	return 0;
 }
 
-void main::processRendering(GLFWwindow* window, shader& mainShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox, 
+void main::processRendering(GLFWwindow* window, shader& mainShader, shader& waterShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox,
 	Player& player, Frustum& frustum, World& world, Crosshair& crosshair, BlockOutline& blockOutline) 
 {
 	// Prepare matrices
@@ -149,6 +150,19 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& mesh
 	mainShader.setVec3("cameraPosition", camera.getPosition());
 
 	world.Draw(frustum);
+	
+	// Draw water
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	waterShader.use();
+	waterShader.setMat4("model", model);
+	waterShader.setMat4("view", view);
+	waterShader.setMat4("projection", projection);
+	waterShader.setVec3("lightDirection", lightDirection);
+	waterShader.setVec3("viewPos", camera.getPosition());
+
+	world.DrawWater(frustum);
+	glDisable(GL_BLEND);
 
 	// Draw Crosshair
 	if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
@@ -253,6 +267,7 @@ void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::ma
 	glPolygonOffset(-0.5, -0.5);
 
 	world.Draw(frustum);
+	world.DrawWater(frustum);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
 	glDisable(GL_POLYGON_OFFSET_LINE); // Disable polygon offset for lines

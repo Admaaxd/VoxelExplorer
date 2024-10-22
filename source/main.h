@@ -25,7 +25,7 @@
 class main
 {
 public:
-	static void processRendering(GLFWwindow* window, shader& mainShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox,
+	static void processRendering(GLFWwindow* window, shader& mainShader, shader& waterShader, shader& meshingShader, shader& crosshairShader, SkyboxRenderer& skybox,
 		Player& player, Frustum& frustum, World& world, Crosshair& crosshair, BlockOutline& blockOutline);
 
 	static void initializeGLFW(GLFWwindow*& window);

@@ -19,6 +19,7 @@ public:
 	~Chunk();
 
 	void Draw();
+	void DrawWater();
 	void setupChunk();
 	void updateOpenGLBuffers();
 
@@ -30,6 +31,9 @@ public:
 	bool isInFrustum(const Frustum& frustum) const;
 	glm::vec3 getMinBounds() const { return minBounds; }
 	glm::vec3 getMaxBounds() const { return maxBounds; }
+
+	GLint getChunkX() const { return chunkX; }
+	GLint getChunkZ() const { return chunkZ; }
 
 	void recalculateSunlightColumn(GLint x, GLint z);
 
@@ -57,7 +61,11 @@ private:
 	FastNoiseLite noiseGenerator;
 	std::vector<GLfloat> vertices;
 	std::vector<GLuint> indices;
-	GLuint VAO, VBO, EBO;
+	GLuint VAO = 0, VBO = 0, EBO = 0;
+
+	std::vector<GLfloat> waterVertices;
+	std::vector<GLuint> waterIndices;
+	GLuint waterVAO = 0, waterVBO = 0, waterEBO = 0;
 
 	glm::vec3 minBounds;
 	glm::vec3 maxBounds;

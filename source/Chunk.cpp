@@ -16,6 +16,10 @@ Chunk::~Chunk()
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
+
+    glDeleteVertexArrays(1, &waterVAO);
+    glDeleteBuffers(1, &waterVBO);
+    glDeleteBuffers(1, &waterEBO);
 }
 
 void Chunk::setupChunk()
@@ -67,7 +71,7 @@ void Chunk::generateChunk()
                     continue;
                 }
 
-                if (y >= WATERLEVEL - 2 && y <= terrainHeight && terrainHeight <= WATERLEVEL + 2)
+                if (y <= WATERLEVEL && y >= terrainHeight - 2)
                 {
                     blockTypes[index] = 3; // Sand near water
                 }
@@ -266,7 +270,7 @@ void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
     for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y) {
         GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
 
-        if (blockTypes[index] == -1 || blockTypes[index] == 6 ||  blockTypes[index] == 9 || blockTypes[index] == 10 ||
+        if (blockTypes[index] == -1 || blockTypes[index] == 4 || blockTypes[index] == 6 ||  blockTypes[index] == 9 || blockTypes[index] == 10 ||
             blockTypes[index] == 11 || blockTypes[index] == 12 || blockTypes[index] == 13) { // Air block and transparent blocks
             lightLevels[index] = lightLevel;
         }
@@ -281,7 +285,10 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 {
     vertices.clear();
     indices.clear();
+    waterVertices.clear();
+    waterIndices.clear();
     GLint vertexOffset = 0;
+    GLint waterVertexOffset = 0;
 
     struct ProcessedFaces {
         bool back = false;
@@ -300,7 +307,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     };
 
     auto isTransparent = [](GLint blockType) {
-        return blockType == -1 || blockType == 6 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
+        return blockType == -1 || blockType == 4 || blockType == 6 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
     };
 
     auto isAir = [](GLint blockType) {
@@ -315,39 +322,41 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             neighborBlockType = blockTypes[getIndex(nx, ny, nz)];
         }
         else {
-            // Handle neighboring chunks
             GLint neighborChunkX = chunkX, neighborChunkZ = chunkZ;
+            GLint neighborX = nx, neighborZ = nz;
 
-            if (nx < 0) neighborChunkX -= 1;
-            else if (nx >= CHUNK_SIZE) neighborChunkX += 1;
+            if (nx < 0) {
+                neighborChunkX -= 1;
+                neighborX += CHUNK_SIZE;
+            }
+            else if (nx >= CHUNK_SIZE) {
+                neighborChunkX += 1;
+                neighborX -= CHUNK_SIZE;
+            }
 
-            if (nz < 0) neighborChunkZ -= 1;
-            else if (nz >= CHUNK_SIZE) neighborChunkZ += 1;
+            if (nz < 0) {
+                neighborChunkZ -= 1;
+                neighborZ += CHUNK_SIZE;
+            }
+            else if (nz >= CHUNK_SIZE) {
+                neighborChunkZ += 1;
+                neighborZ -= CHUNK_SIZE;
+            }
 
-            if (Chunk* neighborChunk = world->getChunk(neighborChunkX, neighborChunkZ)) {
-                nx = (nx + CHUNK_SIZE) % CHUNK_SIZE;
-                nz = (nz + CHUNK_SIZE) % CHUNK_SIZE;
-                neighborBlockType = neighborChunk->getBlockType(nx, ny, nz);
+            Chunk* neighborChunk = world->getChunk(neighborChunkX, neighborChunkZ);
+            if (neighborChunk) {
+                neighborBlockType = neighborChunk->getBlockType(neighborX, ny, neighborZ);
             }
             else {
                 neighborBlockType = -1;
             }
         }
 
-        if (isAir(neighborBlockType)) {
-            return true; // Exposed to air
-        }
-
         if (neighborBlockType == blockType) {
             return false; // Same block type; do not expose face
         }
 
-        if (isTransparent(blockType)) {
-            return true; // Transparent block; expose face if neighbor is different
-        }
-        else {
-            return isTransparent(neighborBlockType); // Opaque block; expose face if neighbor is transparent
-        }
+        return isTransparent(neighborBlockType);
     };
 
     auto calculateAO = [&](bool side1, bool side2, bool corner) {
@@ -570,6 +579,28 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     continue;
                 }
 
+                // Water block
+                if (blockType == 4) {
+                    uint8_t lightLevel = lightLevels[index];
+                    GLint textureLayer = getTextureLayer(blockType, 0);
+                    GLfloat ao[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+                    int16_t worldX = chunkX * CHUNK_SIZE + x;
+                    int16_t worldZ = chunkZ * CHUNK_SIZE + z;
+
+                    if (isExposed(x, y, z, 0, 0, -1, blockType)) Block::addBackFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    if (isExposed(x, y, z, 0, 0, 1, blockType)) Block::addFrontFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    if (isExposed(x, y, z, -1, 0, 0, blockType)) Block::addLeftFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    if (isExposed(x, y, z, 1, 0, 0, blockType)) Block::addRightFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    if (isExposed(x, y, z, 0, 1, 0, blockType)) 
+                    {
+                        GLfloat waterY = y + 0.9f;
+                        Block::addTopFace(waterVertices, waterIndices, waterVertexOffset, worldX, waterY, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+                    if (isExposed(x, y, z, 0, -1, 0, blockType)) Block::addBottomFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    continue;
+                }
+
                 if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1, blockType)) processFace(x, y, z, 0);
                 if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1, blockType)) processFace(x, y, z, 1);
                 if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0, blockType)) processFace(x, y, z, 2);
@@ -711,6 +742,8 @@ void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
 
 void Chunk::Draw()
 {
+    if (indices.empty()) return;
+
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDisable(GL_CULL_FACE);
@@ -725,6 +758,18 @@ void Chunk::Draw()
     glCullFace(GL_BACK);
 
     glDisable(GL_BLEND);
+}
+
+void Chunk::DrawWater()
+{
+    if (waterIndices.empty()) return;
+
+    glBindVertexArray(waterVAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
+    glDrawElements(GL_TRIANGLES, waterIndices.size(), GL_UNSIGNED_INT, 0);
+
+    glBindVertexArray(0);
 }
 
 void Chunk::updateOpenGLBuffers()
@@ -756,6 +801,47 @@ void Chunk::updateOpenGLBuffers()
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
     glEnableVertexAttribArray(2);
     
+    // Normal attribute
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(3);
+
+    // Light level attribute
+    glVertexAttribPointer(4, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(9 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(4);
+
+    // Ambient occlusion attribute
+    glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(10 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(5);
+
+
+    // Update water buffers
+    if (waterVAO == 0)
+    {
+        glGenVertexArrays(1, &waterVAO);
+        glGenBuffers(1, &waterVBO);
+        glGenBuffers(1, &waterEBO);
+    }
+
+    glBindVertexArray(waterVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, waterVBO);
+    glBufferData(GL_ARRAY_BUFFER, waterVertices.size() * sizeof(GLfloat), waterVertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, waterIndices.size() * sizeof(GLuint), waterIndices.data(), GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // Texture coordinate attribute
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+
+    // Texture layer attribute
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(5 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
+
     // Normal attribute
     glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
     glEnableVertexAttribArray(3);

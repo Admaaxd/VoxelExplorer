@@ -19,6 +19,7 @@ public:
 	World(const Frustum& frustum);
 	~World();
 	void Draw(const Frustum& frustum);
+	void DrawWater(const Frustum& frustum);
 	void updatePlayerPosition(const glm::vec3& position);
 	void processChunkLoadQueue(uint8_t maxChunksToLoad);
 	Chunk* getChunk(GLint x, GLint z);
@@ -66,6 +67,9 @@ private:
 	bool isChunkInFrustum(GLint chunkX, GLint chunkZ, const Frustum& frustum) const;
 
 	void propagateSunlight(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
+
+	void addChunk(Chunk* chunk);
+	void notifyNeighbors(Chunk* chunk);
 
 	std::vector<BlockChange> getQueuedBlockChanges(GLint chunkX, GLint chunkZ);
 
