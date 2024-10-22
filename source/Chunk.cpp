@@ -764,10 +764,15 @@ void Chunk::DrawWater()
 {
     if (waterIndices.empty()) return;
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glBindVertexArray(waterVAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, textureID);
     glDrawElements(GL_TRIANGLES, waterIndices.size(), GL_UNSIGNED_INT, 0);
+
+    glDisable(GL_BLEND);
 
     glBindVertexArray(0);
 }

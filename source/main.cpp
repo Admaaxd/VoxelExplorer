@@ -152,8 +152,6 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	world.Draw(frustum);
 	
 	// Draw water
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	waterShader.use();
 	waterShader.setMat4("model", model);
 	waterShader.setMat4("view", view);
@@ -162,7 +160,6 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	waterShader.setVec3("viewPos", camera.getPosition());
 
 	world.DrawWater(frustum);
-	glDisable(GL_BLEND);
 
 	// Draw Crosshair
 	if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);

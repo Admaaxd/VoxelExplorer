@@ -181,6 +181,25 @@ void Player::removeBlock()
     if (rayCast(hitPos, hitNormal, blockType))
     {
         world.setBlock(hitPos.x, hitPos.y, hitPos.z, -1);
+
+        glm::vec3 blockAbove = hitPos + glm::vec3(0, 1, 0);
+        int16_t chunkX = (blockAbove.x >= 0) ? static_cast<int16_t>(blockAbove.x / CHUNK_SIZE) : static_cast<int16_t>((blockAbove.x + 1) / CHUNK_SIZE) - 1;
+        int16_t chunkZ = (blockAbove.z >= 0) ? static_cast<int16_t>(blockAbove.z / CHUNK_SIZE) : static_cast<int16_t>((blockAbove.z + 1) / CHUNK_SIZE) - 1;
+
+        int16_t localX = static_cast<int16_t>(blockAbove.x) - (chunkX * CHUNK_SIZE);
+        int16_t localY = static_cast<int16_t>(std::floor(blockAbove.y));
+        int16_t localZ = static_cast<int16_t>(blockAbove.z) - (chunkZ * CHUNK_SIZE);
+        localX = (localX + CHUNK_SIZE) % CHUNK_SIZE;
+        localZ = (localZ + CHUNK_SIZE) % CHUNK_SIZE;
+
+        if (Chunk* chunk = world.getChunk(chunkX, chunkZ))
+        {
+            GLint blockAboveType = chunk->getBlockType(localX, localY, localZ);
+            if (blockAboveType == 10 || blockAboveType == 11 || blockAboveType == 12 || blockAboveType == 13)
+            {
+                chunk->setBlockType(localX, localY, localZ, -1);
+            }
+        }
     }
 }
 
@@ -203,6 +222,12 @@ void Player::placeBlock() {
 
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
             GLint blockType = chunk->getBlockType(localX, localY, localZ);
+
+            if (selectedBlockType == 10) {
+                if (blockType != 0 && blockType != 2) {
+                    return; // Flower only can be placed on dirt or grass block
+                }
+            }
 
             if (blockType == 4 || blockType == 11 || blockType == 12 || blockType == 13) {
                 chunk->setBlockType(localX, localY, localZ, selectedBlockType);
