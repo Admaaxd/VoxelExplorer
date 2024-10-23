@@ -22,6 +22,7 @@ public:
 	bool isBlockInsidePlayer(const glm::vec3& blockPos) const;
 	void setFlying(bool enableFlying);
 	bool isFlying() const;
+	bool isInWater() const;
 
 private:
 	glm::vec3 getLookDirection() const;

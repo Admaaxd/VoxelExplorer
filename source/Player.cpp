@@ -102,6 +102,11 @@ void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKe
             }
         }
 
+        if (isInWater()) 
+{
+            currentSpeed *= 0.5f;
+        }
+
         // Set horizontal velocity
         velocity.x = movement.x * currentSpeed;
         velocity.z = movement.z * currentSpeed;
@@ -373,4 +378,30 @@ void Player::setFlying(bool enableFlying) {
 
 bool Player::isFlying() const {
     return flying;
+}
+
+bool Player::isInWater() const {
+    glm::vec3 playerMin = position - size * 0.5f;
+    glm::vec3 playerMax = position + size * 0.5f;
+
+    for (GLint x = static_cast<GLint>(std::floor(playerMin.x)); x <= static_cast<GLint>(std::floor(playerMax.x)); ++x) {
+        for (GLint y = static_cast<GLint>(std::floor(playerMin.y)); y <= static_cast<GLint>(std::floor(playerMax.y)); ++y) {
+            for (GLint z = static_cast<GLint>(std::floor(playerMin.z)); z <= static_cast<GLint>(std::floor(playerMax.z)); ++z) {
+                int16_t chunkX = (x >= 0) ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
+                int16_t chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
+
+                int16_t localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+                int16_t localY = y;
+                int16_t localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+
+                if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
+                    GLint blockType = chunk->getBlockType(localX, localY, localZ);
+                    if (blockType == 4) {
+                        return true; // Player is in water
+                    }
+                }
+            }
+        }
+    }
+    return false; // Player is not in water
 }
