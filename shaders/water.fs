@@ -2,6 +2,7 @@
 
 out vec4 FragColor;
 
+in vec3 FragPos;
 in vec2 TexCoords;
 in float TexLayer;
 in vec3 Normal;
@@ -15,12 +16,21 @@ uniform vec3 viewPos;
 void main()
 {
     vec4 texColor = texture(textureArray, vec3(TexCoords, TexLayer));
-
     vec3 norm = normalize(Normal);
 
-    float diff = max(dot(norm, -lightDirection), 0.0);
+    vec3 viewDir = normalize(viewPos - FragPos);
 
-    vec3 color = texColor.rgb * diff * LightLevel * AO;
+    float cosTheta = max(dot(viewDir, norm), 0.0);
+    float F0 = 0.8;
+    float fresnelFactor = F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+
+    vec3 reflectionColor = vec3(0.5, 0.7, 0.9);
+    vec3 refractionColor = texColor.rgb;
+
+    vec3 color = mix(refractionColor, reflectionColor, fresnelFactor);
+
+    float diff = max(dot(norm, -lightDirection), 0.0);
+    color *= diff * LightLevel * AO;
 
     float alpha = 0.5;
 

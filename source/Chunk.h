@@ -5,6 +5,8 @@
 #include "TextureManager.h"
 #include "Frustum.h"
 #include "Structure.h"
+#include "shader.h"
+#include "Camera.h"
 
 class World;
 
@@ -19,9 +21,10 @@ public:
 	~Chunk();
 
 	void Draw();
-	void DrawWater();
+	void DrawWater(shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera);
 	void setupChunk();
 	void updateOpenGLBuffers();
+	void updateOpenGLWaterBuffers();
 
 	void generateMesh(const std::vector<GLint>& blockTypes);
 	GLint getBlockType(GLint x, GLint y, GLint z) const;

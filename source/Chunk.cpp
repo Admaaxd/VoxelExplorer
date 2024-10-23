@@ -760,12 +760,39 @@ void Chunk::Draw()
     glDisable(GL_BLEND);
 }
 
-void Chunk::DrawWater()
+void Chunk::DrawWater(shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera)
 {
     if (waterIndices.empty()) return;
 
+    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    GLfloat timeValue = glfwGetTime();
+    GLfloat waveSpeed = 2.3f;
+    GLfloat waveFrequency = 1.2f;
+    GLfloat waveAmplitude = 0.05f;
+
+    std::vector<GLfloat> modifiedWaterVertices = waterVertices;
+
+    for (size_t i = 0; i < modifiedWaterVertices.size(); i += 11)
+    {
+        GLfloat x = modifiedWaterVertices[i];
+        GLfloat z = modifiedWaterVertices[i + 2];
+
+        modifiedWaterVertices[i + 1] += sin(x * waveFrequency + timeValue * waveSpeed) * waveAmplitude +
+                                        cos(z * waveFrequency + timeValue * waveSpeed) * waveAmplitude;
+    }
+
+    glBindBuffer(GL_ARRAY_BUFFER, waterVBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, modifiedWaterVertices.size() * sizeof(GLfloat), modifiedWaterVertices.data());
+
+    waterShader.use();
+    waterShader.setMat4("model", glm::mat4(1.0f));
+    waterShader.setMat4("view", view);
+    waterShader.setMat4("projection", projection);
+    waterShader.setVec3("lightDirection", lightDirection);
+    waterShader.setVec3("viewPos", camera.getPosition());
 
     glBindVertexArray(waterVAO);
     glActiveTexture(GL_TEXTURE0);
@@ -773,6 +800,7 @@ void Chunk::DrawWater()
     glDrawElements(GL_TRIANGLES, waterIndices.size(), GL_UNSIGNED_INT, 0);
 
     glDisable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
 
     glBindVertexArray(0);
 }
@@ -818,8 +846,11 @@ void Chunk::updateOpenGLBuffers()
     glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, 11 * sizeof(GLfloat), (void*)(10 * sizeof(GLfloat)));
     glEnableVertexAttribArray(5);
 
+    glBindVertexArray(0);
+}
 
-    // Update water buffers
+void Chunk::updateOpenGLWaterBuffers()
+{
     if (waterVAO == 0)
     {
         glGenVertexArrays(1, &waterVAO);

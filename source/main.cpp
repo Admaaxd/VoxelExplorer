@@ -152,14 +152,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	world.Draw(frustum);
 	
 	// Draw water
-	waterShader.use();
-	waterShader.setMat4("model", model);
-	waterShader.setMat4("view", view);
-	waterShader.setMat4("projection", projection);
-	waterShader.setVec3("lightDirection", lightDirection);
-	waterShader.setVec3("viewPos", camera.getPosition());
-
-	world.DrawWater(frustum);
+	world.DrawWater(frustum, waterShader, view, projection, lightDirection, camera);
 
 	// Draw Crosshair
 	if (isCrosshairEnabled) crosshair.render(crosshairShader, crosshairColor, crosshairSize);
@@ -265,7 +258,6 @@ void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::ma
 	glPolygonOffset(-0.5, -0.5);
 
 	world.Draw(frustum);
-	world.DrawWater(frustum);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset to fill mode
 	glDisable(GL_POLYGON_OFFSET_LINE); // Disable polygon offset for lines

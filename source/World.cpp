@@ -32,24 +32,23 @@ void World::Draw(const Frustum& frustum) {
 			}
 			if (chunk->isInFrustum(frustum)) {
 				chunk->Draw();
-				chunk->updateOpenGLBuffers();
 			}
 		}
 	}
 }
 
-void World::DrawWater(const Frustum& frustum) {
+void World::DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera) {
 	for (auto& pair : chunks) {
 		Chunk* chunk = pair.second;
 		if (chunk) {
 			if (chunk->needsMeshUpdate) {
 				chunk->generateMesh(chunk->getBlockTypes());
-				chunk->updateOpenGLBuffers();
+				chunk->updateOpenGLWaterBuffers();
 				chunk->needsMeshUpdate = false;
 			}
 			if (chunk->isInFrustum(frustum)) {
-				chunk->DrawWater();
-				chunk->updateOpenGLBuffers();
+				chunk->DrawWater(waterShader, view, projection, lightDirection, camera);
+				chunk->updateOpenGLWaterBuffers();
 			}
 		}
 	}
