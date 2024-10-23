@@ -95,7 +95,7 @@ int main()
 
 	// Cleanup
 	main::cleanupImGui();
-	main::cleanup(mainShader, meshingShader, crosshair);
+	main::cleanup(mainShader, meshingShader, crosshair, waterShader);
 
 	glfwTerminate();
 	return 0;
@@ -177,11 +177,12 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum, skybox);
 }
 
-void main::cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair)
+void main::cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair, shader& waterShader)
 {
 	mainShader.Delete();
 	meshingShader.Delete();
 	crosshair.Delete();
+	waterShader.Delete();
 }
 
 void main::initializeGLFW(GLFWwindow*& window)

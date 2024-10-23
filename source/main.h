@@ -43,7 +43,7 @@ public:
 	static void initializeImGui(GLFWwindow* window);
 	static void renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum, SkyboxRenderer& skyboxRenderer);
 	static void cleanupImGui();
-	static void cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair);
+	static void cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair, shader& waterShader);
 	static void mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn);
 	static void mouseButtonCallback(GLFWwindow* window, GLint button, GLint action, GLint mods);
 	static size_t getCurrentMemoryUsage();
