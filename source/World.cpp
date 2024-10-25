@@ -3,9 +3,9 @@
 World::World(const Frustum& frustum) : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager(), threadPool(std::thread::hardware_concurrency()) {
 	std::srand(static_cast<GLuint>(std::time(0)));
 
-	for (int16_t x = -renderDistance; x <= renderDistance; ++x)
+	for (int8_t x = -renderDistance + 2; x <= renderDistance - 2; ++x)
 	{
-		for (int16_t z = -renderDistance; z <= renderDistance; ++z)
+		for (int8_t z = -renderDistance + 2; z <= renderDistance - 2; ++z)
 		{
 			queueChunkLoad(x, z);
 		}
@@ -65,7 +65,9 @@ void World::DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 vie
 			Chunk* chunk = pair.second;
 			if (chunk) {
 				if (chunk->needsMeshUpdate) {
-					chunksNeedingUpdate.push_back(chunk);
+					if (chunk->isInFrustum(frustum)) {
+						chunksNeedingUpdate.push_back(chunk);
+					}
 				}
 				if (chunk->isInFrustum(frustum)) {
 					chunksToDraw.push_back(chunk);
@@ -90,10 +92,10 @@ void World::DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 vie
 	}
 }
 
-void World::updatePlayerPosition(const glm::vec3& position)
+void World::updatePlayerPosition(const glm::vec3& position, const Frustum& frustum)
 {
-	int16_t newChunkX = static_cast<int16_t>(std::floor(position.x / static_cast<int16_t>(CHUNK_SIZE)));
-	int16_t newChunkZ = static_cast<int16_t>(std::floor(position.z / static_cast<int16_t>(CHUNK_SIZE)));
+	int16_t newChunkX = static_cast<int16_t>(std::floor(position.x / CHUNK_SIZE));
+	int16_t newChunkZ = static_cast<int16_t>(std::floor(position.z / CHUNK_SIZE));
 
 	if (newChunkX != playerChunkX || newChunkZ != playerChunkZ)
 	{
@@ -104,7 +106,13 @@ void World::updatePlayerPosition(const glm::vec3& position)
 		{
 			for (int16_t dz = -renderDistance; dz <= renderDistance; ++dz)
 			{
-				queueChunkLoad(playerChunkX + dx, playerChunkZ + dz);
+				int16_t chunkX = playerChunkX + dx;
+				int16_t chunkZ = playerChunkZ + dz;
+
+				if (isChunkInFrustum(chunkX, chunkZ, frustum) && !isChunkLoaded(chunkX, chunkZ))
+				{
+					queueChunkLoad(chunkX, chunkZ);
+				}
 			}
 		}
 	}
@@ -281,7 +289,6 @@ bool World::isChunkLoaded(int16_t x, int16_t z) {
 }
 
 void World::updateNeighboringChunksOnBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ) {
-	static const int16_t offsets[4][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
 	std::vector<std::pair<int16_t, int16_t>> neighborsToUpdate;
 
 	if (localX == 0) neighborsToUpdate.emplace_back(chunkX - 1, chunkZ);

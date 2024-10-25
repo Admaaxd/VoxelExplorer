@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <queue>
 #include <map>
+#include <unordered_set>
 
 struct BlockChange {
 	int16_t localX, localY, localZ;
@@ -18,7 +19,7 @@ public:
 	~World();
 	void Draw(const Frustum& frustum);
 	void DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera);
-	void updatePlayerPosition(const glm::vec3& position);
+	void updatePlayerPosition(const glm::vec3& position, const Frustum& frustum);
 	void processChunkLoadQueue(uint8_t maxChunksToLoad);
 	Chunk* getChunk(int16_t x, int16_t z);
 
@@ -43,7 +44,7 @@ public:
 
 	struct ChunkCoordHash {
 		std::size_t operator()(const ChunkCoord& coord) const {
-			return std::hash<GLint>()(coord.x) ^ std::hash<GLint>()(coord.z);
+			return std::hash<int16_t>()(coord.x) ^ std::hash<int16_t>()(coord.z);
 		}
 	};
 

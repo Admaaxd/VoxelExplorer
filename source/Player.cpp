@@ -391,11 +391,11 @@ bool Player::isInWater() const {
                 int16_t chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
 
                 int16_t localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
-                int16_t localY = y;
+                int8_t localY = y;
                 int16_t localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
 
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
-                    GLint blockType = chunk->getBlockType(localX, localY, localZ);
+                    int16_t blockType = chunk->getBlockType(localX, localY, localZ);
                     if (blockType == 4) {
                         return true; // Player is in water
                     }

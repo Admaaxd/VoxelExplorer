@@ -201,9 +201,9 @@ void Chunk::initializeNoise()
 
     // Detail noise
     detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    detailNoise.SetFrequency(0.02f);
+    detailNoise.SetFrequency(0.03f);
     detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    detailNoise.SetFractalOctaves(8);
+    detailNoise.SetFractalOctaves(10);
 
     // Cave noise
     caveNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
