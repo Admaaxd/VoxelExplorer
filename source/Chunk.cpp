@@ -43,7 +43,7 @@ void Chunk::generateChunk()
             GLfloat globalX = static_cast<GLfloat>(chunkX * CHUNK_SIZE + x);
             GLfloat globalZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
 
-            GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
+            uint8_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
@@ -129,7 +129,7 @@ void Chunk::generateChunk()
             GLint globalX = chunkX * CHUNK_SIZE + x;
             GLint globalZ = chunkZ * CHUNK_SIZE + z;
 
-            GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
+            uint8_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
             GLint indexBelow = getIndex(x, terrainHeight, z);
             GLint indexAbove = getIndex(x, terrainHeight + 1, z);
@@ -301,10 +301,6 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
     std::vector<std::vector<std::vector<ProcessedFaces>>> processed(
         CHUNK_SIZE, std::vector<std::vector<ProcessedFaces>>(CHUNK_HEIGHT, std::vector<ProcessedFaces>(CHUNK_SIZE)));
-
-    auto getIndex = [this](GLint x, GLint y, GLint z) {
-        return x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
-    };
 
     auto isTransparent = [](GLint blockType) {
         return blockType == -1 || blockType == 4 || blockType == 6 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;

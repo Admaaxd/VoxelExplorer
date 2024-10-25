@@ -3,9 +3,9 @@
 World::World(const Frustum& frustum) : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager(), threadPool(std::thread::hardware_concurrency()) {
 	std::srand(static_cast<GLuint>(std::time(0)));
 
-	for (GLint x = -renderDistance; x <= renderDistance; ++x)
+	for (int16_t x = -renderDistance; x <= renderDistance; ++x)
 	{
-		for (GLint z = -renderDistance; z <= renderDistance; ++z)
+		for (int16_t z = -renderDistance; z <= renderDistance; ++z)
 		{
 			queueChunkLoad(x, z);
 		}
@@ -15,6 +15,7 @@ World::World(const Frustum& frustum) : playerChunkX(0), playerChunkZ(0), chunkLo
 
 World::~World()
 {
+	std::lock_guard<std::mutex> lock(chunksMutex);
 	for (auto& pair : chunks)
 	{
 		delete pair.second;
@@ -22,72 +23,104 @@ World::~World()
 }
 
 void World::Draw(const Frustum& frustum) {
-	for (auto& pair : chunks) {
-		Chunk* chunk = pair.second;
-		if (chunk) {
-			if (chunk->needsMeshUpdate) {
-				chunk->generateMesh(chunk->getBlockTypes());
-				chunk->updateOpenGLBuffers();
-				chunk->needsMeshUpdate = false;
-			}
-			if (chunk->isInFrustum(frustum)) {
-				chunk->Draw();
+	std::vector<Chunk*> chunksToDraw, chunksNeedingUpdate;
+
+	{
+		std::lock_guard<std::mutex> lock(chunksMutex);
+		for (auto& pair : chunks) {
+			Chunk* chunk = pair.second;
+			if (chunk) {
+				if (chunk->needsMeshUpdate) {
+					chunksNeedingUpdate.push_back(chunk);
+				}
+				if (chunk->isInFrustum(frustum)) {
+					chunksToDraw.push_back(chunk);
+				}
 			}
 		}
+	}
+
+	std::vector<std::future<void>> futures;
+	for (Chunk* chunk : chunksNeedingUpdate) {
+		futures.push_back(threadPool.enqueue([chunk]() {
+			chunk->generateMesh(chunk->getBlockTypes());
+			chunk->needsMeshUpdate = false;
+		}));
+	}
+
+	for (auto& future : futures) future.get();
+
+	for (Chunk* chunk : chunksToDraw) {
+		chunk->updateOpenGLBuffers();
+		chunk->Draw();
 	}
 }
 
 void World::DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera) {
-	for (auto& pair : chunks) {
-		Chunk* chunk = pair.second;
-		if (chunk) {
-			if (chunk->needsMeshUpdate) {
-				chunk->generateMesh(chunk->getBlockTypes());
-				chunk->updateOpenGLWaterBuffers();
-				chunk->needsMeshUpdate = false;
-			}
-			if (chunk->isInFrustum(frustum)) {
-				chunk->DrawWater(waterShader, view, projection, lightDirection, camera);
-				chunk->updateOpenGLWaterBuffers();
+	std::vector<Chunk*> chunksToDraw, chunksNeedingUpdate;
+
+	{
+		std::lock_guard<std::mutex> lock(chunksMutex);
+		for (auto& pair : chunks) {
+			Chunk* chunk = pair.second;
+			if (chunk) {
+				if (chunk->needsMeshUpdate) {
+					chunksNeedingUpdate.push_back(chunk);
+				}
+				if (chunk->isInFrustum(frustum)) {
+					chunksToDraw.push_back(chunk);
+				}
 			}
 		}
+	}
+
+	std::vector<std::future<void>> futures;
+	for (Chunk* chunk : chunksNeedingUpdate) {
+		futures.push_back(threadPool.enqueue([chunk]() {
+			chunk->generateMesh(chunk->getBlockTypes());
+			chunk->needsMeshUpdate = false;
+		}));
+	}
+
+	for (auto& future : futures) future.get();
+
+	for (Chunk* chunk : chunksToDraw) {
+		chunk->updateOpenGLWaterBuffers();
+		chunk->DrawWater(waterShader, view, projection, lightDirection, camera);
 	}
 }
 
 void World::updatePlayerPosition(const glm::vec3& position)
 {
-	GLint newChunkX = static_cast<GLint>(std::floor(position.x / static_cast<GLint>(CHUNK_SIZE)));
-	GLint newChunkZ = static_cast<GLint>(std::floor(position.z / static_cast<GLint>(CHUNK_SIZE)));
+	int16_t newChunkX = static_cast<int16_t>(std::floor(position.x / static_cast<int16_t>(CHUNK_SIZE)));
+	int16_t newChunkZ = static_cast<int16_t>(std::floor(position.z / static_cast<int16_t>(CHUNK_SIZE)));
 
 	if (newChunkX != playerChunkX || newChunkZ != playerChunkZ)
 	{
 		playerChunkX = newChunkX;
 		playerChunkZ = newChunkZ;
 
-		for (GLint dx = -renderDistance; dx <= renderDistance; ++dx)
+		for (int16_t dx = -renderDistance; dx <= renderDistance; ++dx)
 		{
-			for (GLint dz = -renderDistance; dz <= renderDistance; ++dz)
+			for (int16_t dz = -renderDistance; dz <= renderDistance; ++dz)
 			{
-				GLint chunkX = playerChunkX + dx;
-				GLint chunkZ = playerChunkZ + dz;
-
-				queueChunkLoad(chunkX, chunkZ);
+				queueChunkLoad(playerChunkX + dx, playerChunkZ + dz);
 			}
 		}
 	}
 }
 
-void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
+void World::processChunkLoadQueue(uint8_t maxChunksToLoad) 
 {
-	GLint chunksLoaded = 0;
+	uint8_t chunksLoaded = 0;
 	std::vector<ChunkCoord> tempUnloadList;
 
-	while (!chunkLoadQueue.empty() && chunksLoaded < maxChunksToLoad)
+	while (!chunkLoadQueue.empty() && chunksLoaded < maxChunksToLoad) 
 	{
 		ChunkCoord coord = chunkLoadQueue.top();
 		chunkLoadQueue.pop();
 
-		if (isWithinRenderDistance(coord.x, coord.z) && !isChunkLoaded(coord.x, coord.z))
+		if (isWithinRenderDistance(coord.x, coord.z) && !isChunkLoaded(coord.x, coord.z)) 
 		{
 			loadChunk(coord.x, coord.z);
 			++chunksLoaded;
@@ -103,9 +136,9 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 		}
 	}
 
-	for (auto it = pendingChunks.begin(); it != pendingChunks.end(); )
+	for (auto it = pendingChunks.begin(); it != pendingChunks.end(); ) 
 	{
-		if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+		if (it->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready) 
 		{
 			Chunk* chunk = it->second.get();
 			addChunk(chunk);
@@ -116,7 +149,6 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 		}
 	}
 
-	// Unload chunks marked for unloading
 	for (const auto& coord : tempUnloadList) {
 		unloadChunk(coord.x, coord.z);
 	}
@@ -128,38 +160,32 @@ void World::addChunk(Chunk* chunk) {
 		std::lock_guard<std::mutex> lock(chunksMutex);
 		chunks[coord] = chunk;
 	}
-	notifyNeighbors(chunk);
+	threadPool.enqueue([=] { notifyNeighbors(chunk); });
 }
 
 void World::notifyNeighbors(Chunk* chunk) {
-	GLint chunkX = chunk->getChunkX(), chunkZ = chunk->getChunkZ();
+	int16_t chunkX = chunk->getChunkX();
+	int16_t chunkZ = chunk->getChunkZ();
+	int16_t offsets[4][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
 
-	GLint offsets[4][2] = {
-		{-1, 0}, // Left
-		{1, 0},  // Right
-		{0, -1}, // Back
-		{0, 1}   // Front
-	};
-
-	for (GLint i = 0; i < 4; ++i) {
-		GLint neighborX = chunkX + offsets[i][0];
-		GLint neighborZ = chunkZ + offsets[i][1];
-		Chunk* neighborChunk = getChunk(neighborX, neighborZ);
-		if (neighborChunk) {
-			neighborChunk->needsMeshUpdate = true;
-		}
+	for (uint8_t i = 0; i < 4; ++i) {
+		int16_t neighborX = chunkX + offsets[i][0];
+		int16_t neighborZ = chunkZ + offsets[i][1];
+		threadPool.enqueue([=]() {
+			if (Chunk* neighbor = getChunk(neighborX, neighborZ)) {
+				neighbor->needsMeshUpdate = true;
+			}
+		});
 	}
-
-	chunk->needsMeshUpdate = true;
 }
 
-void World::queueBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ, uint8_t blockType) {
+void World::queueBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ, uint8_t blockType) {
 	std::lock_guard<std::mutex> lock(queuedBlockChangesMutex);
 	ChunkCoord coord = { chunkX, chunkZ };
 	queuedBlockChanges[coord].push_back({ localX, localY, localZ, blockType });
 }
 
-std::vector<BlockChange> World::getQueuedBlockChanges(GLint chunkX, GLint chunkZ) {
+std::vector<BlockChange> World::getQueuedBlockChanges(int16_t chunkX, int16_t chunkZ) {
 	std::lock_guard<std::mutex> lock(queuedBlockChangesMutex);
 	ChunkCoord coord = { chunkX, chunkZ };
 	std::vector<BlockChange> changes;
@@ -171,7 +197,7 @@ std::vector<BlockChange> World::getQueuedBlockChanges(GLint chunkX, GLint chunkZ
 	return changes;
 }
 
-Chunk* World::getChunk(GLint x, GLint z)
+Chunk* World::getChunk(int16_t x, int16_t z)
 {
 	ChunkCoord coord = { x, z };
 	std::lock_guard<std::mutex> lock(chunksMutex);
@@ -183,117 +209,111 @@ Chunk* World::getChunk(GLint x, GLint z)
 	return nullptr;
 }
 
-void World::setBlock(GLint x, GLint y, GLint z, int8_t type) {
-	GLint chunkX = (x >= 0) ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
-	GLint chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
+void World::setBlock(int16_t x, int16_t y, int16_t z, int8_t type) {
+	int16_t chunkX = x >= 0 ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
+	int16_t chunkZ = z >= 0 ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
 
-	GLint localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
-	GLint localY = y;
-	GLint localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+	uint8_t localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+	uint8_t localY = y;
+	uint8_t localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
 
-	if (Chunk* chunk = getChunk(chunkX, chunkZ)) {
-		chunk->setBlockType(localX, localY, localZ, type);
-		propagateSunlight(chunkX, chunkZ, localX, localY, localZ);
-		chunk->generateMesh(chunk->getBlockTypes());
-		chunk->updateOpenGLBuffers();
-	}
-
-	updateNeighboringChunksOnBlockChange(chunkX, chunkZ, localX, localY, localZ);
-}
-
-void World::propagateSunlight(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ) {
 	Chunk* chunk = getChunk(chunkX, chunkZ);
-	if (!chunk) return;
+	if (chunk) {
+		threadPool.enqueue([this, chunk, localX, localY, localZ, type, chunkX, chunkZ]() {
+			chunk->setBlockType(localX, localY, localZ, type);
+			propagateSunlight(chunkX, chunkZ, localX, localY, localZ);
+			chunk->needsMeshUpdate = true;
 
-	chunk->recalculateSunlightColumn(localX, localZ);
+			if (localX == 0 || localX == CHUNK_SIZE - 1 ||
+				localZ == 0 || localZ == CHUNK_SIZE - 1) {
+				updateNeighboringChunksOnBlockChange(chunkX, chunkZ, localX, localY, localZ);
+			}
+		});
+	}
 }
 
-void World::queueChunkLoad(GLint x, GLint z)
+void World::propagateSunlight(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ) {
+	Chunk* chunk = getChunk(chunkX, chunkZ);
+	if (chunk) {
+		chunk->recalculateSunlightColumn(localX, localZ);
+		chunk->needsMeshUpdate = true;
+	}
+}
+
+void World::queueChunkLoad(int16_t x, int16_t z)
 {
 	ChunkCoord coord = { x, z };
 	chunkLoadQueue.push(coord);
 }
 
-void World::loadChunk(GLint x, GLint z) {
+void World::loadChunk(int16_t x, int16_t z) {
 	ChunkCoord coord = { x, z };
-
 	if (chunks.find(coord) == chunks.end() && pendingChunks.find(coord) == pendingChunks.end()) {
-		auto future = threadPool.enqueue([this, coord, x, z]() -> Chunk* {
-			Chunk* chunk = new Chunk(x, z, textureManager, this);
-
-			std::vector<BlockChange> changes = getQueuedBlockChanges(x, z);
+		auto future = threadPool.enqueue([this, coord]() -> Chunk* {
+			Chunk* chunk = new Chunk(coord.x, coord.z, textureManager, this);
+			auto changes = getQueuedBlockChanges(coord.x, coord.z);
 			for (const auto& change : changes) {
 				chunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
 			}
-
 			return chunk;
 		});
-
 		pendingChunks[coord] = std::move(future);
 	}
 }
 
-void World::unloadChunk(GLint x, GLint z)
-{
+void World::unloadChunk(int16_t x, int16_t z) {
 	ChunkCoord coord = { x, z };
-	std::lock_guard<std::mutex> lock(chunksMutex);
+	std::unique_lock<std::mutex> lock(chunksMutex);
 	auto it = chunks.find(coord);
-	if (it != chunks.end())
-	{
-		delete it->second;
+	if (it != chunks.end()) {
+		Chunk* chunk = it->second;
 		chunks.erase(it);
+		lock.unlock();
+
+		delete chunk;
 	}
 }
 
-bool World::isChunkLoaded(GLint x, GLint z) const
-{
+bool World::isChunkLoaded(int16_t x, int16_t z) {
 	ChunkCoord coord = { x, z };
+	std::lock_guard<std::mutex> lock(chunksMutex);
 	return chunks.find(coord) != chunks.end();
 }
 
-void World::updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ) {
-	if (localX == 0) {
-		if (Chunk* neighborChunk = getChunk(chunkX - 1, chunkZ)) {
-			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
-			neighborChunk->updateOpenGLBuffers();
-		}
-	}
-	if (localX == CHUNK_SIZE - 1) {
-		if (Chunk* neighborChunk = getChunk(chunkX + 1, chunkZ)) {
-			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
-			neighborChunk->updateOpenGLBuffers();
-		}
-	}
-	if (localZ == 0) {
-		if (Chunk* neighborChunk = getChunk(chunkX, chunkZ - 1)) {
-			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
-			neighborChunk->updateOpenGLBuffers();
-		}
-	}
-	if (localZ == CHUNK_SIZE - 1) {
-		if (Chunk* neighborChunk = getChunk(chunkX, chunkZ + 1)) {
-			neighborChunk->generateMesh(neighborChunk->getBlockTypes());
-			neighborChunk->updateOpenGLBuffers();
-		}
+void World::updateNeighboringChunksOnBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ) {
+	static const int16_t offsets[4][2] = { {-1, 0}, {1, 0}, {0, -1}, {0, 1} };
+	std::vector<std::pair<int16_t, int16_t>> neighborsToUpdate;
+
+	if (localX == 0) neighborsToUpdate.emplace_back(chunkX - 1, chunkZ);
+	if (localX == CHUNK_SIZE - 1) neighborsToUpdate.emplace_back(chunkX + 1, chunkZ);
+	if (localZ == 0) neighborsToUpdate.emplace_back(chunkX, chunkZ - 1);
+	if (localZ == CHUNK_SIZE - 1) neighborsToUpdate.emplace_back(chunkX, chunkZ + 1);
+
+	for (const auto& [nx, nz] : neighborsToUpdate) {
+		threadPool.enqueue([this, nx, nz]() {
+			Chunk* neighborChunk = getChunk(nx, nz);
+			if (neighborChunk) {
+				neighborChunk->needsMeshUpdate = true;
+			}
+		});
 	}
 }
 
-bool World::isChunkInFrustum(GLint chunkX, GLint chunkZ, const Frustum& frustum) const
+bool World::isChunkInFrustum(int16_t chunkX, int16_t chunkZ, const Frustum& frustum) const
 {
 	// Calculate the chunk's AABB
 	glm::vec3 minBounds(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
 	glm::vec3 maxBounds(chunkX * CHUNK_SIZE + CHUNK_SIZE, CHUNK_HEIGHT, chunkZ * CHUNK_SIZE + CHUNK_SIZE);
-
 	return frustum.isBoxInFrustum(minBounds, maxBounds);
 }
 
-bool World::isWithinRenderDistance(GLint x, GLint z) const
+bool World::isWithinRenderDistance(int16_t x, int16_t z) const
 {
 	return std::abs(x - playerChunkX) <= renderDistance && std::abs(z - playerChunkZ) <= renderDistance;
 }
 
 bool World::ChunkCoordComparator::operator()(const ChunkCoord& a, const ChunkCoord& b) const {
-    float distA = std::abs(a.x - world.playerChunkX) + std::abs(a.z - world.playerChunkZ);
-    float distB = std::abs(b.x - world.playerChunkX) + std::abs(b.z - world.playerChunkZ);
+    GLfloat distA = std::abs(a.x - world.playerChunkX) + std::abs(a.z - world.playerChunkZ);
+    GLfloat distB = std::abs(b.x - world.playerChunkX) + std::abs(b.z - world.playerChunkZ);
     return distA > distB;
 }

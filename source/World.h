@@ -7,9 +7,7 @@
 #include <map>
 
 struct BlockChange {
-	GLint localX;
-	GLint localY;
-	GLint localZ;
+	int16_t localX, localY, localZ;
 	uint8_t blockType;
 };
 
@@ -22,14 +20,14 @@ public:
 	void DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera);
 	void updatePlayerPosition(const glm::vec3& position);
 	void processChunkLoadQueue(uint8_t maxChunksToLoad);
-	Chunk* getChunk(GLint x, GLint z);
+	Chunk* getChunk(int16_t x, int16_t z);
 
-	void setBlock(GLint x, GLint y, GLint z, int8_t type);
+	void setBlock(int16_t x, int16_t y, int16_t z, int8_t type);
 
-	void queueBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ, uint8_t blockType);
+	void queueBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ, uint8_t blockType);
 
 	struct ChunkCoord {
-		GLint x, z;
+		int16_t x, z;
 
 		bool operator==(const ChunkCoord& other) const {
 			return x == other.x && z == other.z;
@@ -58,24 +56,24 @@ private:
 		const World& world;
 	};
 
-	void queueChunkLoad(GLint x, GLint z);
-	void loadChunk(GLint x, GLint z);
-	void unloadChunk(GLint x, GLint z);
-	bool isWithinRenderDistance(GLint x, GLint z) const;
-	bool isChunkLoaded(GLint x, GLint z) const;
-	void updateNeighboringChunksOnBlockChange(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
-	bool isChunkInFrustum(GLint chunkX, GLint chunkZ, const Frustum& frustum) const;
+	void queueChunkLoad(int16_t x, int16_t z);
+	void loadChunk(int16_t x, int16_t z);
+	void unloadChunk(int16_t x, int16_t z);
+	bool isChunkLoaded(int16_t x, int16_t z);
+	bool isWithinRenderDistance(int16_t x, int16_t z) const;
+	void updateNeighboringChunksOnBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ);
+	bool isChunkInFrustum(int16_t chunkX, int16_t chunkZ, const Frustum& frustum) const;
 
-	void propagateSunlight(GLint chunkX, GLint chunkZ, GLint localX, GLint localY, GLint localZ);
+	void propagateSunlight(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ);
 
 	void addChunk(Chunk* chunk);
 	void notifyNeighbors(Chunk* chunk);
 
-	std::vector<BlockChange> getQueuedBlockChanges(GLint chunkX, GLint chunkZ);
+	std::vector<BlockChange> getQueuedBlockChanges(int16_t chunkX, int16_t chunkZ);
 
 	std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash> chunks;
 	std::priority_queue<ChunkCoord, std::vector<ChunkCoord>, ChunkCoordComparator> chunkLoadQueue;
-	GLint playerChunkX, playerChunkZ;
+	int16_t playerChunkX, playerChunkZ;
 	TextureManager textureManager;
 
 	std::unordered_map<ChunkCoord, std::future<Chunk*>, ChunkCoordHash> pendingChunks;
