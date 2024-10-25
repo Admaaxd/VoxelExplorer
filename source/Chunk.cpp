@@ -33,8 +33,8 @@ void Chunk::generateChunk()
 {
     blockTypes.resize(CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE, -1);
 
-    uint8_t caveMinHeight = CHUNK_HEIGHT / 64;
-    uint8_t surfaceBuffer = CHUNK_HEIGHT / 9;
+    constexpr uint8_t caveMinHeight = CHUNK_HEIGHT / 64;
+    constexpr uint8_t surfaceBuffer = CHUNK_HEIGHT / 9;
 
     for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
     {
@@ -228,39 +228,37 @@ void Chunk::initializeNoise()
 
 GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
 {
-    GLfloat worldX = static_cast<GLfloat>(x);
-    GLfloat worldZ = static_cast<GLfloat>(z);
+    GLfloat finalHeight = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z))
+        + elevationNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f
+        + ridgeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.4f
+        + mountainNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f
+        + detailNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.2f;
 
-    // Generate base terrain height
-    GLfloat baseHeight = baseNoise.GetNoise(worldX, worldZ);
-    GLfloat elevation = elevationNoise.GetNoise(worldX, worldZ);
-    GLfloat ridge = ridgeNoise.GetNoise(worldX, worldZ) * 0.4f; // Add ridges
-    GLfloat mountains = mountainNoise.GetNoise(worldX, worldZ) * 0.5f; // Add mountainous regions
-    GLfloat detail = detailNoise.GetNoise(worldX, worldZ) * 0.2f; // Add fine-grain details
-
-    // Combine noise layers
-    GLfloat finalHeight = baseHeight + elevation * 0.5f + ridge + mountains + detail;
-
-    uint8_t terrainHeight = static_cast<uint8_t>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
-
-    return terrainHeight;
+    return static_cast<GLint>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
 }
 
 void Chunk::placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType)
 {
-    GLint localX = globalX - chunkX * CHUNK_SIZE;
-    GLint localZ = globalZ - chunkZ * CHUNK_SIZE;
+    if (y >= 0 && y < CHUNK_HEIGHT) {
+        GLint localX = globalX - chunkX * CHUNK_SIZE;
+        GLint localZ = globalZ - chunkZ * CHUNK_SIZE;
 
-    if (localX >= 0 && localX < CHUNK_SIZE && localZ >= 0 && localZ < CHUNK_SIZE && y >= 0 && y < CHUNK_HEIGHT)
-    {
-        GLint index = getIndex(localX, y, localZ);
-        blockTypes[index] = blockType;
+        if (localX >= 0 && localX < CHUNK_SIZE && localZ >= 0 && localZ < CHUNK_SIZE) {
+            blockTypes[getIndex(localX, y, localZ)] = blockType;
+        }
     }
 }
 
-GLint Chunk::getIndex(GLint x, GLint y, GLint z)
+inline GLint Chunk::getIndex(GLint x, GLint y, GLint z) const
 {
-    return x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+    static constexpr uint16_t layerSize = CHUNK_HEIGHT * CHUNK_SIZE;
+    return x * layerSize + y * CHUNK_SIZE + z;
+}
+
+inline bool Chunk::isTransparent(GLint blockType)
+{
+    return blockType == -1 || blockType == 4 || blockType == 6 || blockType == 9 ||
+        blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -268,10 +266,9 @@ void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
 
     // Loop through the column from top to bottom
     for (GLint y = CHUNK_HEIGHT - 1; y >= 0; --y) {
-        GLuint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
+        GLuint index = getIndex(x, y, z);
 
-        if (blockTypes[index] == -1 || blockTypes[index] == 4 || blockTypes[index] == 6 ||  blockTypes[index] == 9 || blockTypes[index] == 10 ||
-            blockTypes[index] == 11 || blockTypes[index] == 12 || blockTypes[index] == 13) { // Air block and transparent blocks
+        if (isTransparent(blockTypes[index])) {
             lightLevels[index] = lightLevel;
         }
         else { // Solid block
@@ -290,21 +287,29 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     GLint vertexOffset = 0;
     GLint waterVertexOffset = 0;
 
+    enum FaceFlag {
+        BACK = 1 << 0,
+        FRONT = 1 << 1,
+        LEFT = 1 << 2,
+        RIGHT = 1 << 3,
+        TOP = 1 << 4,
+        BOTTOM = 1 << 5,
+    };
+
     struct ProcessedFaces {
-        bool back = false;
-        bool front = false;
-        bool left = false;
-        bool right = false;
-        bool top = false;
-        bool bottom = false;
+        uint8_t flags = 0;
+    };
+
+    auto isFaceProcessed = [](const ProcessedFaces& processed, FaceFlag face) {
+        return (processed.flags & face) != 0;
+    };
+
+    auto setFaceProcessed = [](ProcessedFaces& processed, FaceFlag face) {
+        processed.flags |= face;
     };
 
     std::vector<std::vector<std::vector<ProcessedFaces>>> processed(
         CHUNK_SIZE, std::vector<std::vector<ProcessedFaces>>(CHUNK_HEIGHT, std::vector<ProcessedFaces>(CHUNK_SIZE)));
-
-    auto isTransparent = [](GLint blockType) {
-        return blockType == -1 || blockType == 4 || blockType == 6 || blockType == 9 || blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
-    };
 
     auto isAir = [](GLint blockType) {
         return blockType == -1;
@@ -363,8 +368,8 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
     };
 
     auto processFace = [&](GLint x, GLint y, GLint z, int8_t face) {
-        GLint extentX = 1;
-        GLint extentY = 1;
+        uint16_t extentX = 1;
+        uint16_t extentY = 1;
         GLint blockType = blockTypes[getIndex(x, y, z)];
         GLint textureLayer = getTextureLayer(blockType, face);
         GLuint index = getIndex(x, y, z);
@@ -380,24 +385,26 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 0, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].back && isExposed(x, y + extentY, z, 0, 0, -1, blockType)) {
-                processed[x][y + extentY][z].back = true;
+                !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::BACK) && 
+                isExposed(x, y + extentY, z, 0, 0, -1, blockType)) {
+                setFaceProcessed(processed[x][y + extentY][z], FaceFlag::BACK);
                 extentY++;
             }
+
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (GLint dy = 0; dy < extentY; ++dy) {
+                for (int16_t dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x + extentX, y + dy, z)] != blockType ||
-                        processed[x + extentX][y + dy][z].back ||
+                        isFaceProcessed(processed[x + extentX][y + dy][z], FaceFlag::BACK) ||
                         !isExposed(x + extentX, y + dy, z, 0, 0, -1, blockType)) {
                         canExtend = false;
                         break;
                     }
                 }
                 if (!canExtend) break;
-                for (GLint dy = 0; dy < extentY; ++dy) {
-                    processed[x + extentX][y + dy][z].back = true;
+                for (int16_t dy = 0; dy < extentY; ++dy) {
+                    setFaceProcessed(processed[x + extentX][y + dy][z], FaceFlag::BACK);
                 }
                 extentX++;
             }
@@ -412,24 +419,26 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 1, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].front && isExposed(x, y + extentY, z, 0, 0, 1, blockType)) {
-                processed[x][y + extentY][z].front = true;
+                !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::FRONT) &&
+                isExposed(x, y + extentY, z, 0, 0, 1, blockType)) {
+                setFaceProcessed(processed[x][y + extentY][z], FaceFlag::FRONT);
                 extentY++;
             }
+
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (GLint dy = 0; dy < extentY; ++dy) {
+                for (int16_t dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x + extentX, y + dy, z)] != blockType ||
-                        processed[x + extentX][y + dy][z].front ||
+                        isFaceProcessed(processed[x + extentX][y + dy][z], FaceFlag::FRONT) ||
                         !isExposed(x + extentX, y + dy, z, 0, 0, 1, blockType)) {
                         canExtend = false;
                         break;
                     }
                 }
                 if (!canExtend) break;
-                for (GLint dy = 0; dy < extentY; ++dy) {
-                    processed[x + extentX][y + dy][z].front = true;
+                for (int16_t dy = 0; dy < extentY; ++dy) {
+                    setFaceProcessed(processed[x + extentX][y + dy][z], FaceFlag::FRONT);
                 }
                 extentX++;
             }
@@ -444,24 +453,26 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].left && isExposed(x, y + extentY, z, -1, 0, 0, blockType)) {
-                processed[x][y + extentY][z].left = true;
+                !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::LEFT) &&
+                isExposed(x, y + extentY, z, -1, 0, 0, blockType)) {
+                setFaceProcessed(processed[x][y + extentY][z], FaceFlag::LEFT);
                 extentY++;
             }
+
             extentX = 1;
             while (z + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (GLint dy = 0; dy < extentY; ++dy) {
+                for (int16_t dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x, y + dy, z + extentX)] != blockType ||
-                        processed[x][y + dy][z + extentX].left ||
+                        isFaceProcessed(processed[x][y + dy][z + extentX], FaceFlag::LEFT) ||
                         !isExposed(x, y + dy, z + extentX, -1, 0, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
                 }
                 if (!canExtend) break;
-                for (GLint dy = 0; dy < extentY; ++dy) {
-                    processed[x][y + dy][z + extentX].left = true;
+                for (int16_t dy = 0; dy < extentY; ++dy) {
+                    setFaceProcessed(processed[x][y + dy][z + extentX], FaceFlag::LEFT);
                 }
                 extentX++;
             }
@@ -476,24 +487,26 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
-                !processed[x][y + extentY][z].right && isExposed(x, y + extentY, z, 1, 0, 0, blockType)) {
-                processed[x][y + extentY][z].right = true;
+                !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::RIGHT) &&
+                isExposed(x, y + extentY, z, 1, 0, 0, blockType)) {
+                setFaceProcessed(processed[x][y + extentY][z], FaceFlag::RIGHT);
                 extentY++;
             }
+
             extentX = 1;
             while (z + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (GLint dy = 0; dy < extentY; ++dy) {
+                for (int16_t dy = 0; dy < extentY; ++dy) {
                     if (blockTypes[getIndex(x, y + dy, z + extentX)] != blockType ||
-                        processed[x][y + dy][z + extentX].right ||
+                        isFaceProcessed(processed[x][y + dy][z + extentX], FaceFlag::RIGHT) ||
                         !isExposed(x, y + dy, z + extentX, 1, 0, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
                 }
                 if (!canExtend) break;
-                for (GLint dy = 0; dy < extentY; ++dy) {
-                    processed[x][y + dy][z + extentX].right = true;
+                for (int16_t dy = 0; dy < extentY; ++dy) {
+                    setFaceProcessed(processed[x][y + dy][z + extentX], FaceFlag::RIGHT);
                 }
                 extentX++;
             }
@@ -503,24 +516,26 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         case 4: // Top face
 
             while (z + extentY < CHUNK_SIZE && blockTypes[getIndex(x, y, z + extentY)] == blockType &&
-                !processed[x][y][z + extentY].top && isExposed(x, y, z + extentY, 0, 1, 0, blockType)) {
-                processed[x][y][z + extentY].top = true;
+                !isFaceProcessed(processed[x][y][z + extentY], FaceFlag::TOP) &&
+                isExposed(x, y, z + extentY, 0, 1, 0, blockType)) {
+                setFaceProcessed(processed[x][y][z + extentY], FaceFlag::TOP);
                 extentY++;
             }
+
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (GLint dz = 0; dz < extentY; ++dz) {
+                for (int16_t dz = 0; dz < extentY; ++dz) {
                     if (blockTypes[getIndex(x + extentX, y, z + dz)] != blockType ||
-                        processed[x + extentX][y][z + dz].top ||
+                        isFaceProcessed(processed[x + extentX][y][z + dz], FaceFlag::TOP) ||
                         !isExposed(x + extentX, y, z + dz, 0, 1, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
                 }
                 if (!canExtend) break;
-                for (GLint dz = 0; dz < extentY; ++dz) {
-                    processed[x + extentX][y][z + dz].top = true;
+                for (int16_t dz = 0; dz < extentY; ++dz) {
+                    setFaceProcessed(processed[x + extentX][y][z + dz], FaceFlag::TOP);
                 }
                 extentX++;
             }
@@ -535,24 +550,25 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
             ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, 1, blockType));
 
             while (z + extentY < CHUNK_SIZE && blockTypes[getIndex(x, y, z + extentY)] == blockType &&
-                !processed[x][y][z + extentY].bottom && isExposed(x, y, z + extentY, 0, -1, 0, blockType)) {
-                processed[x][y][z + extentY].bottom = true;
+                !isFaceProcessed(processed[x][y][z + extentY], FaceFlag::BOTTOM) &&
+                isExposed(x, y, z + extentY, 0, -1, 0, blockType)) {
+                setFaceProcessed(processed[x][y][z + extentY], FaceFlag::BOTTOM);
                 extentY++;
             }
             extentX = 1;
             while (x + extentX < CHUNK_SIZE) {
                 bool canExtend = true;
-                for (GLint dz = 0; dz < extentY; ++dz) {
+                for (int16_t dz = 0; dz < extentY; ++dz) {
                     if (blockTypes[getIndex(x + extentX, y, z + dz)] != blockType ||
-                        processed[x + extentX][y][z + dz].bottom ||
+                        isFaceProcessed(processed[x + extentX][y][z + dz], FaceFlag::BOTTOM) ||
                         !isExposed(x + extentX, y, z + dz, 0, -1, 0, blockType)) {
                         canExtend = false;
                         break;
                     }
                 }
                 if (!canExtend) break;
-                for (GLint dz = 0; dz < extentY; ++dz) {
-                    processed[x + extentX][y][z + dz].bottom = true;
+                for (int16_t dz = 0; dz < extentY; ++dz) {
+                    setFaceProcessed(processed[x + extentX][y][z + dz], FaceFlag::BOTTOM);
                 }
                 extentX++;
             }
@@ -561,9 +577,9 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         }
         };
 
-    for (GLint x = 0; x < CHUNK_SIZE; ++x) {
-        for (GLint y = 0; y < CHUNK_HEIGHT; ++y) {
-            for (GLint z = 0; z < CHUNK_SIZE; ++z) {
+    for (int16_t x = 0; x < CHUNK_SIZE; ++x) {
+        for (int16_t y = 0; y < CHUNK_HEIGHT; ++y) {
+            for (int16_t z = 0; z < CHUNK_SIZE; ++z) {
                 GLint index = getIndex(x, y, z);
                 GLint blockType = blockTypes[index];
                 if (blockTypes[index] == -1) continue;
@@ -597,12 +613,36 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     continue;
                 }
 
-                if (!processed[x][y][z].back && isExposed(x, y, z, 0, 0, -1, blockType)) processFace(x, y, z, 0);
-                if (!processed[x][y][z].front && isExposed(x, y, z, 0, 0, 1, blockType)) processFace(x, y, z, 1);
-                if (!processed[x][y][z].left && isExposed(x, y, z, -1, 0, 0, blockType)) processFace(x, y, z, 2);
-                if (!processed[x][y][z].right && isExposed(x, y, z, 1, 0, 0, blockType)) processFace(x, y, z, 3);
-                if (!processed[x][y][z].top && isExposed(x, y, z, 0, 1, 0, blockType)) processFace(x, y, z, 4);
-                if (!processed[x][y][z].bottom && y > 0 && isExposed(x, y, z, 0, -1, 0, blockType)) processFace(x, y, z, 5);
+                // Back face
+                if (!isFaceProcessed(processed[x][y][z], FaceFlag::BACK) && isExposed(x, y, z, 0, 0, -1, blockType)) {
+                    processFace(x, y, z, 0);
+                    setFaceProcessed(processed[x][y][z], FaceFlag::BACK);
+                }
+                // Front face
+                if (!isFaceProcessed(processed[x][y][z], FaceFlag::FRONT) && isExposed(x, y, z, 0, 0, 1, blockType)) {
+                    processFace(x, y, z, 1);
+                    setFaceProcessed(processed[x][y][z], FaceFlag::FRONT);
+                }
+                // Left face
+                if (!isFaceProcessed(processed[x][y][z], FaceFlag::LEFT) && isExposed(x, y, z, -1, 0, 0, blockType)) {
+                    processFace(x, y, z, 2);
+                    setFaceProcessed(processed[x][y][z], FaceFlag::LEFT);
+                }
+                // Right face
+                if (!isFaceProcessed(processed[x][y][z], FaceFlag::RIGHT) && isExposed(x, y, z, 1, 0, 0, blockType)) {
+                    processFace(x, y, z, 3);
+                    setFaceProcessed(processed[x][y][z], FaceFlag::RIGHT);
+                }
+                // Top face
+                if (!isFaceProcessed(processed[x][y][z], FaceFlag::TOP) && isExposed(x, y, z, 0, 1, 0, blockType)) {
+                    processFace(x, y, z, 4);
+                    setFaceProcessed(processed[x][y][z], FaceFlag::TOP);
+                }
+                // Bottom face
+                if (!isFaceProcessed(processed[x][y][z], FaceFlag::BOTTOM) && y > 0 && isExposed(x, y, z, 0, -1, 0, blockType)) {
+                    processFace(x, y, z, 5);
+                    setFaceProcessed(processed[x][y][z], FaceFlag::BOTTOM);
+                }
             }
         }
     }
@@ -639,26 +679,24 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
 void Chunk::addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType)
 {
     GLfloat size = 0.5f;
-
-    // Center the grass plant on the block
     GLfloat centerX = x + 0.5f;
     GLfloat centerZ = z + 0.5f;
 
-    GLfloat positions[4][3] = {
-        { centerX - size, y, centerZ - size },
-        { centerX + size, y, centerZ + size },
-        { centerX + size, y + 1.0f, centerZ + size },
-        { centerX - size, y + 1.0f, centerZ - size }
+    GLfloat positions[2][4][3] = {
+        {   // First quad
+            { centerX - size, y, centerZ - size },
+            { centerX + size, y, centerZ + size },
+            { centerX + size, y + 1.0f, centerZ + size },
+            { centerX - size, y + 1.0f, centerZ - size }
+        },
+        {   // Second quad
+            { centerX + size, y, centerZ - size },
+            { centerX - size, y, centerZ + size },
+            { centerX - size, y + 1.0f, centerZ + size },
+            { centerX + size, y + 1.0f, centerZ - size }
+        }
     };
 
-    GLfloat positions2[4][3] = {
-        { centerX + size, y, centerZ - size },
-        { centerX - size, y, centerZ + size },
-        { centerX - size, y + 1.0f, centerZ + size },
-        { centerX + size, y + 1.0f, centerZ - size }
-    };
-
-    // Texture coordinates
     GLfloat texCoords[4][2] = {
         { 0.0f, 0.0f },
         { 1.0f, 0.0f },
@@ -667,53 +705,37 @@ void Chunk::addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& i
     };
 
     GLint textureLayer = getTextureLayer(blockType, 0);
-
-    // Set default normals, light level, and AO for grass
     GLfloat normal[3] = { 0.0f, 1.0f, 0.0f };
     GLfloat grassLightLevel = 1.0f;
     GLfloat grassAO = 1.0f;
 
-    // Add first quad
-    for (GLint i = 0; i < 4; ++i)
+    vertices.reserve(vertices.size() + 8 * 10);
+    indices.reserve(indices.size() + 6 * 2);
+
+    for (int8_t quad = 0; quad < 2; ++quad)
     {
-        vertices.insert(vertices.end(), {
-            positions[i][0], positions[i][1], positions[i][2],
-            texCoords[i][0], texCoords[i][1],
-            (GLfloat)textureLayer,
-            normal[0], normal[1], normal[2],
-            grassLightLevel,
-            grassAO
+        for (int8_t i = 0; i < 4; ++i)
+        {
+            vertices.insert(vertices.end(), {
+                positions[quad][i][0], positions[quad][i][1], positions[quad][i][2],   // Position
+                texCoords[i][0], texCoords[i][1],                                      // Texture coordinates
+                (GLfloat)textureLayer,                                                 // Texture layer
+                normal[0], normal[1], normal[2],                                       // Normal
+                grassLightLevel,                                                       // Light level
+                grassAO                                                                // Ambient occlusion
+            });
+        }
+
+        indices.insert(indices.end(), {
+            static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 1, static_cast<GLuint>(vertexOffset) + 2,
+            static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 2, static_cast<GLuint>(vertexOffset) + 3
         });
+        vertexOffset += 4;
     }
-
-    indices.insert(indices.end(), {
-        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 1, static_cast<GLuint>(vertexOffset) + 2,
-        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 2, static_cast<GLuint>(vertexOffset) + 3
-        });
-    vertexOffset += 4;
-
-    // Add second quad
-    for (GLint i = 0; i < 4; ++i)
-    {
-        vertices.insert(vertices.end(), {
-            positions2[i][0], positions2[i][1], positions2[i][2],
-            texCoords[i][0], texCoords[i][1],
-            (GLfloat)textureLayer,
-            normal[0], normal[1], normal[2],
-            grassLightLevel,
-            grassAO
-        });
-    }
-
-    indices.insert(indices.end(), {
-        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 1, static_cast<GLuint>(vertexOffset) + 2,
-        static_cast<GLuint>(vertexOffset), static_cast<GLuint>(vertexOffset) + 2, static_cast<GLuint>(vertexOffset) + 3
-    });
-    vertexOffset += 4;
 }
 
 GLint Chunk::getBlockType(GLint x, GLint y, GLint z) const {
-    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
+    if ((unsigned)x >= CHUNK_SIZE || (unsigned)y >= CHUNK_HEIGHT || (unsigned)z >= CHUNK_SIZE) {
         return -1;
     }
 
@@ -728,12 +750,15 @@ const std::vector<GLint>& Chunk::getBlockTypes() const
 
 void Chunk::setBlockType(GLint x, GLint y, GLint z, int8_t type)
 {
-    if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
+    if ((unsigned)x >= CHUNK_SIZE || (unsigned)y >= CHUNK_HEIGHT || (unsigned)z >= CHUNK_SIZE) {
         return;
     }
+
     GLint index = x * CHUNK_HEIGHT * CHUNK_SIZE + y * CHUNK_SIZE + z;
-    blockTypes[index] = type;
-    needsMeshUpdate = true;
+    if (blockTypes[index] != type) {
+        blockTypes[index] = type;
+        needsMeshUpdate = true;
+    }
 }
 
 void Chunk::Draw()

@@ -52,7 +52,8 @@ private:
 	void calculateBounds();
 	GLint getTerrainHeightAt(GLint x, GLint z);
 	void placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType);
-	GLint getIndex(GLint x, GLint y, GLint z);
+	inline GLint getIndex(GLint x, GLint y, GLint z) const;
+	inline bool isTransparent(GLint blockType);
 	GLint getTextureLayer(int8_t blockType, int8_t face);
 
 	void addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
