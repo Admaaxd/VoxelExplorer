@@ -384,9 +384,9 @@ bool Player::isInWater() const {
     glm::vec3 playerMin = position - size * 0.5f;
     glm::vec3 playerMax = position + size * 0.5f;
 
-    for (GLint x = static_cast<GLint>(std::floor(playerMin.x)); x <= static_cast<GLint>(std::floor(playerMax.x)); ++x) {
-        for (GLint y = static_cast<GLint>(std::floor(playerMin.y)); y <= static_cast<GLint>(std::floor(playerMax.y)); ++y) {
-            for (GLint z = static_cast<GLint>(std::floor(playerMin.z)); z <= static_cast<GLint>(std::floor(playerMax.z)); ++z) {
+    for (int16_t x = static_cast<int16_t>(std::floor(playerMin.x)); x <= static_cast<int16_t>(std::floor(playerMax.x)); ++x) {
+        for (int16_t y = static_cast<int16_t>(std::floor(playerMin.y)); y <= static_cast<int16_t>(std::floor(playerMax.y)); ++y) {
+            for (int16_t z = static_cast<int16_t>(std::floor(playerMin.z)); z <= static_cast<int16_t>(std::floor(playerMax.z)); ++z) {
                 int16_t chunkX = (x >= 0) ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
                 int16_t chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
 
@@ -404,4 +404,32 @@ bool Player::isInWater() const {
         }
     }
     return false; // Player is not in water
+}
+
+bool Player::isInUnderwater() const {
+    glm::vec3 playerMin = position - size * 0.5f;
+    glm::vec3 playerMax = position + size * 0.5f;
+
+    GLfloat headHeight = playerMax.y - (size.y * 0.5f);
+
+    for (int16_t x = static_cast<int16_t>(std::floor(playerMin.x)); x <= static_cast<int16_t>(std::floor(playerMax.x)); ++x) {
+        for (int16_t y = static_cast<int16_t>(std::floor(headHeight)); y <= static_cast<int16_t>(std::floor(playerMax.y)); ++y) {
+            for (int16_t z = static_cast<int16_t>(std::floor(playerMin.z)); z <= static_cast<int16_t>(std::floor(playerMax.z)); ++z) {
+                int16_t chunkX = (x >= 0) ? x / CHUNK_SIZE : (x + 1) / CHUNK_SIZE - 1;
+                int16_t chunkZ = (z >= 0) ? z / CHUNK_SIZE : (z + 1) / CHUNK_SIZE - 1;
+
+                int16_t localX = (x % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+                int8_t localY = y;
+                int16_t localZ = (z % CHUNK_SIZE + CHUNK_SIZE) % CHUNK_SIZE;
+
+                if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
+                    int16_t blockType = chunk->getBlockType(localX, localY, localZ);
+                    if (blockType != 4) {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
 }

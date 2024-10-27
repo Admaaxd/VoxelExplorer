@@ -149,6 +149,9 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	mainShader.setVec4("fogColor", glm::vec4(0.5f, 0.6f, 0.7f, 1.0f));
 	mainShader.setVec3("cameraPosition", camera.getPosition());
 
+	// --- Underwater Effect ---
+	mainShader.setBool("isUnderwater", player.isInUnderwater());
+
 	world.Draw(frustum);
 	
 	// Draw water
@@ -164,7 +167,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	if (isOutlineEnabled) main::initializeMeshOutline(meshingShader, model, view, projection, world, frustum);
 
 	// Render Skybox
-	main::renderSkybox(skybox, view, projection, camera);
+	main::renderSkybox(skybox, view, projection, camera, player);
 
 	// ImGui
 	if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum, skybox);
@@ -264,10 +267,10 @@ void main::initializeMeshOutline(shader& meshingShader, glm::mat4 model, glm::ma
 	glLineWidth(1.0f);
 }
 
-void main::renderSkybox(SkyboxRenderer& skybox, glm::mat4& view, const glm::mat4& projection, Camera& camera)
+void main::renderSkybox(SkyboxRenderer& skybox, glm::mat4& view, const glm::mat4& projection, Camera& camera, Player& player)
 {
 	view = glm::mat4(glm::mat3(camera.getViewMatrix()));
-	skybox.renderSkybox(view, projection);
+	skybox.renderSkybox(view, projection, player);
 	skybox.renderSun(view, projection);
 	skybox.renderMoon(view, projection);
 }

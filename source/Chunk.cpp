@@ -785,7 +785,6 @@ void Chunk::DrawWater(shader& waterShader, glm::mat4 view, glm::mat4 projection,
 {
     if (waterIndices.empty()) return;
 
-    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -821,7 +820,6 @@ void Chunk::DrawWater(shader& waterShader, glm::mat4 view, glm::mat4 projection,
     glDrawElements(GL_TRIANGLES, waterIndices.size(), GL_UNSIGNED_INT, 0);
 
     glDisable(GL_BLEND);
-    glEnable(GL_CULL_FACE);
 
     glBindVertexArray(0);
 }

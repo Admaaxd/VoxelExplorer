@@ -23,6 +23,7 @@ public:
 	void setFlying(bool enableFlying);
 	bool isFlying() const;
 	bool isInWater() const;
+	bool isInUnderwater() const;
 
 private:
 	glm::vec3 getLookDirection() const;

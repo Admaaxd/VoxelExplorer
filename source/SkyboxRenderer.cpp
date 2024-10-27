@@ -101,7 +101,7 @@ void SkyboxRenderer::setupSkybox() {
     glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glBindVertexArray(0);
 }
 
@@ -217,7 +217,7 @@ GLuint SkyboxRenderer::loadTexture(const std::string& path) {
     return textureID;
 }
 
-void SkyboxRenderer::renderSkybox(const glm::mat4& view, const glm::mat4& projection) {
+void SkyboxRenderer::renderSkybox(const glm::mat4& view, const glm::mat4& projection, Player& player) {
     glDisable(GL_CULL_FACE);
     glDepthFunc(GL_LEQUAL);
     skyboxShader.use();
@@ -234,6 +234,7 @@ void SkyboxRenderer::renderSkybox(const glm::mat4& view, const glm::mat4& projec
     skyboxView = skyboxView * rotation;
     skyboxShader.setMat4("view", skyboxView);
     skyboxShader.setMat4("projection", projection);
+    skyboxShader.setBool("isUnderwater", player.isInUnderwater());
 
     glBindVertexArray(skyboxVAO);
     if (isNight) {

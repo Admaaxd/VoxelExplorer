@@ -10,13 +10,14 @@
 #include <vector>
 #include <string>
 #include "shader.h"
+#include "Player.h"
 
 class SkyboxRenderer {
 public:
     SkyboxRenderer(const std::vector<std::string>& dayFaces, const std::vector<std::string>& nightFaces, const std::string& sunTexturePath, const std::string& moonTexturePath);
     ~SkyboxRenderer();
 
-    void renderSkybox(const glm::mat4& view, const glm::mat4& projection);
+    void renderSkybox(const glm::mat4& view, const glm::mat4& projection, Player& player);
     void renderSun(const glm::mat4& view, const glm::mat4& projection);
     void renderMoon(const glm::mat4& view, const glm::mat4& projection);
     glm::vec3 getSunPosition() const;

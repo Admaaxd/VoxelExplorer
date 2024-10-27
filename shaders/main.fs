@@ -3,7 +3,7 @@ out vec4 FragColor;
 
 in vec2 texCoord;
 in float texLayer;
-in float fogFactor;  // Fog factor from the vertex shader
+in float fogFactor;
 in vec3 FragPos;
 in vec3 Normal;
 in float LightLevel;
@@ -18,6 +18,7 @@ uniform vec3 moonDirection;
 uniform vec3 moonColor;
 
 uniform vec4 fogColor;  // Fog color, including alpha
+uniform bool isUnderwater;
 
 void main()
 {
@@ -66,9 +67,22 @@ void main()
     // Compute the final lighting result
     vec3 result = lighting * texColor.rgb;
 
-    // --- FOG APPLICATION ---
-    // Blend the final result color with the fog color based on the fogFactor
-    vec3 finalColor = mix(fogColor.rgb, result, fogFactor);
+    // --- UNDERWATER EFFECT ---
+    vec3 underwaterEffect = result;
+
+    if (isUnderwater)
+    {
+        float depthFactor = clamp((FragPos.y - viewPos.y) * -0.05, 0.0, 1.0);
+        vec3 underwaterColor = vec3(0.0, 0.3, 0.6);
+        underwaterEffect = mix(result, underwaterColor, depthFactor);
+
+        float fogDensity = 0.05;
+        float distance = length(FragPos - viewPos);
+        float fogFactorUnderwater = exp(-distance * fogDensity);
+        underwaterEffect = mix(underwaterColor, underwaterEffect, fogFactorUnderwater);
+    }
+
+    vec3 finalColor = isUnderwater ? underwaterEffect : mix(fogColor.rgb, result, fogFactor);
 
     // Output the final color
     FragColor = vec4(finalColor, texColor.a);
