@@ -234,7 +234,7 @@ void Player::placeBlock() {
                 }
             }
 
-            if (blockType == 4 || blockType == 11 || blockType == 12 || blockType == 13) {
+            if ((blockType == 4 || blockType == 11 || blockType == 12 || blockType == 13) && !isBlockInsidePlayer(placePos)) {
                 chunk->setBlockType(localX, localY, localZ, selectedBlockType);
                 return;
             }

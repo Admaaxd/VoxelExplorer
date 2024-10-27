@@ -10,7 +10,7 @@ World::World(const Frustum& frustum) : playerChunkX(0), playerChunkZ(0), chunkLo
 			queueChunkLoad(x, z);
 		}
 	}
-	processChunkLoadQueue(renderDistance * renderDistance);
+	processChunkLoadQueue(renderDistance * renderDistance, 0.5);
 }
 
 World::~World()
@@ -118,13 +118,20 @@ void World::updatePlayerPosition(const glm::vec3& position, const Frustum& frust
 	}
 }
 
-void World::processChunkLoadQueue(uint8_t maxChunksToLoad) 
+void World::processChunkLoadQueue(uint8_t maxChunksToLoad, uint16_t delay)
 {
+	static auto lastChunkLoadTime = std::chrono::steady_clock::now();
 	uint8_t chunksLoaded = 0;
 	std::vector<ChunkCoord> tempUnloadList;
 
+	auto currentTime = std::chrono::steady_clock::now();
+	auto timeSinceLastChunk = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - lastChunkLoadTime).count();
+
 	while (!chunkLoadQueue.empty() && chunksLoaded < maxChunksToLoad) 
 	{
+		if (timeSinceLastChunk < delay)
+			return;
+
 		ChunkCoord coord = chunkLoadQueue.top();
 		chunkLoadQueue.pop();
 
@@ -132,6 +139,8 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad)
 		{
 			loadChunk(coord.x, coord.z);
 			++chunksLoaded;
+
+			lastChunkLoadTime = std::chrono::steady_clock::now();
 
 			for (const auto& pair : chunks)
 			{

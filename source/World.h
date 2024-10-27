@@ -20,7 +20,7 @@ public:
 	void Draw(const Frustum& frustum);
 	void DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera);
 	void updatePlayerPosition(const glm::vec3& position, const Frustum& frustum);
-	void processChunkLoadQueue(uint8_t maxChunksToLoad);
+	void processChunkLoadQueue(uint8_t maxChunksToLoad, uint16_t delay);
 	Chunk* getChunk(int16_t x, int16_t z);
 
 	void setBlock(int16_t x, int16_t y, int16_t z, int8_t type);
