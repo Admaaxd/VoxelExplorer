@@ -22,6 +22,18 @@ World::~World()
 	}
 }
 
+bool World::isInitialChunksLoaded() {
+	for (int8_t x = -renderDistance + 2; x <= renderDistance - 2; ++x) {
+		for (int8_t z = -renderDistance + 2; z <= renderDistance - 2; ++z) {
+			ChunkCoord coord = { x, z };
+			if (!isChunkLoaded(coord.x, coord.z)) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 void World::Draw(const Frustum& frustum) {
 	std::vector<Chunk*> chunksToDraw, chunksNeedingUpdate;
 

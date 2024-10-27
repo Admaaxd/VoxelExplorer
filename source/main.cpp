@@ -81,6 +81,8 @@ int main()
 
 	main::initializeImGui(window);
 
+	main::displayLoadingScreen(window, world, frustum);
+
 	    // -- Main Game Loop -- //
 	while (!glfwWindowShouldClose(window))
 	{
@@ -233,6 +235,64 @@ void main::updateFPS() {
 	}
 	deltaTime = currentTime - lastFrame;
 	lastFrame = currentTime;
+}
+
+void main::displayLoadingScreen(GLFWwindow* window, World& world, Frustum& frustum) {
+	glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+
+	while (!world.isInitialChunksLoaded()) {
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		// Center the loading screen
+		ImGui::SetNextWindowPos(ImVec2((SCR_WIDTH - 300) / 2, (SCR_HEIGHT - 300) / 2), ImGuiCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(300, 300), ImGuiCond_Always);
+
+		// Start an invisible ImGui window
+		ImGui::Begin("Loading...", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration);
+
+		ImGui::BeginChild("CanvasRegion", ImVec2(300, 300), false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoDecoration);
+		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+		ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		glm::vec3 camPos = camera.getPosition();
+		ImVec2 canvasCenter = ImVec2(canvasPos.x + canvasSize.x / 2, canvasPos.y + canvasSize.y / 2);
+		float scale = 0.7f;
+
+		int index = 0;
+
+		for (const auto& pair : world.getChunks()) {
+			const Chunk* chunk = pair.second;
+			ImVec2 chunkPosMin = ImVec2(canvasCenter.x + (chunk->getMinBounds().x - camPos.x) * scale, canvasCenter.y + (chunk->getMinBounds().z - camPos.z) * scale);
+			ImVec2 chunkPosMax = ImVec2(canvasCenter.x + (chunk->getMaxBounds().x - camPos.x) * scale, canvasCenter.y + (chunk->getMaxBounds().z - camPos.z) * scale);
+
+			float hue = fmod(index * 0.1f, 1.0f);
+			float r = std::sin(hue * 3.14159f * 2.0f) * 0.5f + 0.5f;
+			float g = std::sin((hue + 0.33f) * 3.14159f * 2.0f) * 0.5f + 0.5f;
+			float b = std::sin((hue + 0.66f) * 3.14159f * 2.0f) * 0.5f + 0.5f;
+			ImU32 fillColor = IM_COL32(static_cast<int>(r * 255), static_cast<int>(g * 255), static_cast<int>(b * 255), 150);
+
+			drawList->AddRectFilled(chunkPosMin, chunkPosMax, fillColor);
+			drawList->AddRect(chunkPosMin, chunkPosMax, IM_COL32(0, 0, 0, 255));
+
+			index++;
+		}
+
+		ImGui::EndChild();
+		ImGui::End();
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+		glfwSwapBuffers(window);
+		glfwPollEvents();
+
+		world.processChunkLoadQueue(1, 0.5);
+	}
 }
 
 void main::renderBlockOutline(const Player& player, const glm::mat4& projection, const glm::mat4& view, BlockOutline& blockOutline) {

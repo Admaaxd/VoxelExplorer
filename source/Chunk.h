@@ -38,6 +38,8 @@ public:
 	GLint getChunkX() const { return chunkX; }
 	GLint getChunkZ() const { return chunkZ; }
 
+	bool isLoaded() const { return isInitialized; }
+
 	void recalculateSunlightColumn(GLint x, GLint z);
 
 	GLfloat chunkX, chunkZ;

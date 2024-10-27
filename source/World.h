@@ -17,6 +17,7 @@ class World
 public:
 	World(const Frustum& frustum);
 	~World();
+	bool isInitialChunksLoaded();
 	void Draw(const Frustum& frustum);
 	void DrawWater(const Frustum& frustum, shader& waterShader, glm::mat4 view, glm::mat4 projection, glm::vec3 lightDirection, Camera& camera);
 	void updatePlayerPosition(const glm::vec3& position, const Frustum& frustum);
