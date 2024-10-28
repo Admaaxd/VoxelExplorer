@@ -24,109 +24,127 @@ void Player::handleMouseInput(GLint button, GLint action, bool isGUIEnabled)
 
 void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKeyPressedLastFrame, GLfloat& lastX, GLfloat& lastY)
 {
-    bool isEscapePressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
-    if (isEscapePressed && !escapeKeyPressedLastFrame) {
-        isGUIEnabled = !isGUIEnabled;
+    if (freezePlayer) {
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+            glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS ||
+            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS ||
+            glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
 
-        glfwSetInputMode(window, GLFW_CURSOR, isGUIEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
-
-        if (!isGUIEnabled) {
-            GLdouble xpos, ypos;
-            glfwGetCursorPos(window, &xpos, &ypos);
-            lastX = static_cast<GLfloat>(xpos);
-            lastY = static_cast<GLfloat>(ypos);
+            freezePlayer = false;
         }
     }
-    escapeKeyPressedLastFrame = isEscapePressed;
+    if (!freezePlayer)
+    {
+        bool isEscapePressed = glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS;
+        if (isEscapePressed && !escapeKeyPressedLastFrame) {
+            isGUIEnabled = !isGUIEnabled;
 
-    if (!isGUIEnabled) {
-        glm::vec3 movement(0.0f);
+            glfwSetInputMode(window, GLFW_CURSOR, isGUIEnabled ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
 
-        glm::vec3 lookDirection = camera.getLookDirection();
-        lookDirection.y = 0.0f;
-        if (glm::length(lookDirection) > 0.0f)
-            lookDirection = glm::normalize(lookDirection);
-
-        glm::vec3 rightDirection = camera.getRight();
-        rightDirection.y = 0.0f;
-        if (glm::length(rightDirection) > 0.0f)
-            rightDirection = glm::normalize(rightDirection);
-
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            movement += lookDirection;
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            movement -= lookDirection;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            movement -= rightDirection;
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            movement += rightDirection;
-
-        if (glm::length(movement) > 0.0f)
-            movement = glm::normalize(movement);
-
-        bool isShiftPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-        bool isCtrlPressed = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
-
-        GLfloat currentSpeed = flying ? movementSpeed * 5.0f : movementSpeed;
-        if (isShiftPressed && !flying) currentSpeed += 1.8f;
-
-        if (isCtrlPressed && !flying && !isInUnderwater())
-        {
-            currentSpeed /= 2.0f;
-            if (size.y != 1.5f)
-            {
-                position.y -= (1.8f - 1.5f) / 2.0f;
-                size = { 0.6f, 1.5f, 0.6f };
+            if (!isGUIEnabled) {
+                GLdouble xpos, ypos;
+                glfwGetCursorPos(window, &xpos, &ypos);
+                lastX = static_cast<GLfloat>(xpos);
+                lastY = static_cast<GLfloat>(ypos);
             }
         }
-        else if (!isCtrlPressed && !flying && !isInUnderwater())
-        {
-            if (size.y != 1.8f)
+        escapeKeyPressedLastFrame = isEscapePressed;
+
+        if (!isGUIEnabled) {
+            glm::vec3 movement(0.0f);
+
+            glm::vec3 lookDirection = camera.getLookDirection();
+            lookDirection.y = 0.0f;
+            if (glm::length(lookDirection) > 0.0f)
+                lookDirection = glm::normalize(lookDirection);
+
+            glm::vec3 rightDirection = camera.getRight();
+            rightDirection.y = 0.0f;
+            if (glm::length(rightDirection) > 0.0f)
+                rightDirection = glm::normalize(rightDirection);
+
+            if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+                movement += lookDirection;
+            if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+                movement -= lookDirection;
+            if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+                movement -= rightDirection;
+            if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+                movement += rightDirection;
+
+            if (glm::length(movement) > 0.0f)
+                movement = glm::normalize(movement);
+
+            bool isShiftPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+            bool isCtrlPressed = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+
+            GLfloat currentSpeed = flying ? movementSpeed * 5.0f : movementSpeed;
+            if (isShiftPressed && !flying) currentSpeed += 1.8f;
+
+            if (isCtrlPressed && !flying && !isInUnderwater())
             {
-                glm::vec3 testPosition = position;
-                testPosition.y += (1.8f - 1.5f) / 2.0f;
-
-                glm::vec3 oldSize = size;
-                size = { 0.6f, 1.8f, 0.6f };
-                bool canStandUp = !checkCollision(testPosition);
-
-                if (canStandUp)
+                currentSpeed /= 2.0f;
+                if (size.y != 1.5f)
                 {
-                    position.y += (1.8f - 1.5f) / 2.0f;
+                    position.y -= (1.8f - 1.5f) / 2.0f;
+                    size = { 0.6f, 1.5f, 0.6f };
+                }
+            }
+            else if (!isCtrlPressed && !flying && !isInUnderwater())
+            {
+                if (size.y != 1.8f)
+                {
+                    glm::vec3 testPosition = position;
+                    testPosition.y += (1.8f - 1.5f) / 2.0f;
+
+                    glm::vec3 oldSize = size;
                     size = { 0.6f, 1.8f, 0.6f };
-                }
-                else
-                {
-                    size = oldSize;
+                    bool canStandUp = !checkCollision(testPosition);
+
+                    if (canStandUp)
+                    {
+                        position.y += (1.8f - 1.5f) / 2.0f;
+                        size = { 0.6f, 1.8f, 0.6f };
+                    }
+                    else
+                    {
+                        size = oldSize;
+                    }
                 }
             }
-        }
 
-        if (isInWater()) 
-{
-            currentSpeed *= 0.5f;
-        }
-
-        // Set horizontal velocity
-        velocity.x = movement.x * currentSpeed;
-        velocity.z = movement.z * currentSpeed;
-
-        if (flying) {
-            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-                velocity.y = currentSpeed; // Fly up
+            if (isInWater())
+            {
+                currentSpeed *= 0.5f;
             }
-            else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-                velocity.y = -currentSpeed; // Fly down
+
+            // Set horizontal velocity
+            velocity.x = movement.x * currentSpeed;
+            velocity.z = movement.z * currentSpeed;
+
+            if (flying) {
+                if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+                    velocity.y = currentSpeed; // Fly up
+                }
+                else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                    velocity.y = -currentSpeed; // Fly down
+                }
+                else {
+                    velocity.y = 0.0f;
+                }
             }
             else {
-                velocity.y = 0.0f;
-            }
-        }
-        else {
-            // Regular jumping
-            if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && isOnGround) {
-                velocity.y = jumpStrength;
-                isOnGround = false;
+                // Regular jumping
+                if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && isOnGround) {
+                    velocity.y = jumpStrength;
+                    isOnGround = false;
+                }
             }
         }
     }
@@ -262,6 +280,11 @@ glm::vec3 Player::getLookDirection() const
 }
 
 void Player::update(GLfloat deltaTime) {
+    if (freezePlayer) {
+        velocity = glm::vec3(0.0f);
+        return;
+    }
+    
     if (!flying) {
         // Apply gravity when not flying
         if (!isOnGround) {

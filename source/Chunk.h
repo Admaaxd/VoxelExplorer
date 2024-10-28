@@ -30,6 +30,7 @@ public:
 	GLint getBlockType(GLint x, GLint y, GLint z) const;
 	const std::vector<GLint>& getBlockTypes() const;
 	void setBlockType(GLint x, GLint y, GLint z, int8_t type);
+	GLint getTerrainHeightAt(GLint x, GLint z);
 
 	bool isInFrustum(const Frustum& frustum) const;
 	glm::vec3 getMinBounds() const { return minBounds; }
@@ -52,7 +53,6 @@ public:
 private:
 	void generateChunk();
 	void calculateBounds();
-	GLint getTerrainHeightAt(GLint x, GLint z);
 	void placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType);
 	inline GLint getIndex(GLint x, GLint y, GLint z) const;
 	inline bool isTransparent(GLint blockType);

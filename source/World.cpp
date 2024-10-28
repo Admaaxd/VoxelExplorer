@@ -3,9 +3,9 @@
 World::World(const Frustum& frustum) : playerChunkX(0), playerChunkZ(0), chunkLoadQueue(ChunkCoordComparator(*this)), textureManager(), threadPool(std::thread::hardware_concurrency()) {
 	std::srand(static_cast<GLuint>(std::time(0)));
 
-	for (int8_t x = -renderDistance + 2; x <= renderDistance - 2; ++x)
+	for (int8_t x = -renderDistance + 1; x <= renderDistance - 1; ++x)
 	{
-		for (int8_t z = -renderDistance + 2; z <= renderDistance - 2; ++z)
+		for (int8_t z = -renderDistance + 1; z <= renderDistance - 1; ++z)
 		{
 			queueChunkLoad(x, z);
 		}
@@ -23,8 +23,8 @@ World::~World()
 }
 
 bool World::isInitialChunksLoaded() {
-	for (int8_t x = -renderDistance + 2; x <= renderDistance - 2; ++x) {
-		for (int8_t z = -renderDistance + 2; z <= renderDistance - 2; ++z) {
+	for (int8_t x = -renderDistance + 1; x <= renderDistance - 1; ++x) {
+		for (int8_t z = -renderDistance + 1; z <= renderDistance - 1; ++z) {
 			ChunkCoord coord = { x, z };
 			if (!isChunkLoaded(coord.x, coord.z)) {
 				return false;
@@ -344,4 +344,21 @@ bool World::ChunkCoordComparator::operator()(const ChunkCoord& a, const ChunkCoo
     GLfloat distA = std::abs(a.x - world.playerChunkX) + std::abs(a.z - world.playerChunkZ);
     GLfloat distB = std::abs(b.x - world.playerChunkX) + std::abs(b.z - world.playerChunkZ);
     return distA > distB;
+}
+
+GLfloat World::getTerrainHeightAt(GLfloat x, GLfloat z)
+{
+	GLint chunkX = static_cast<GLint>(floor(x)) / CHUNK_SIZE;
+	GLint chunkZ = static_cast<GLint>(floor(z)) / CHUNK_SIZE;
+
+	Chunk* chunk = getChunk(chunkX, chunkZ);
+	if (!chunk) return CHUNK_HEIGHT;
+
+	GLint localX = static_cast<GLint>(floor(x)) % CHUNK_SIZE;
+	GLint localZ = static_cast<GLint>(floor(z)) % CHUNK_SIZE;
+
+	if (localX < 0) localX += CHUNK_SIZE;
+	if (localZ < 0) localZ += CHUNK_SIZE;
+
+	return static_cast<GLfloat>(chunk->getTerrainHeightAt(localX, localZ));
 }

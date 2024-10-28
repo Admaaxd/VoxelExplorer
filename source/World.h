@@ -23,6 +23,7 @@ public:
 	void updatePlayerPosition(const glm::vec3& position, const Frustum& frustum);
 	void processChunkLoadQueue(uint8_t maxChunksToLoad, uint16_t delay);
 	Chunk* getChunk(int16_t x, int16_t z);
+	GLfloat getTerrainHeightAt(GLfloat x, GLfloat z);
 
 	void setBlock(int16_t x, int16_t y, int16_t z, int8_t type);
 

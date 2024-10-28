@@ -83,6 +83,12 @@ int main()
 
 	main::displayLoadingScreen(window, world, frustum);
 
+	glm::vec3 spawnPosition = camera.getPosition();
+	spawnPosition.y = world.getTerrainHeightAt(spawnPosition.x, spawnPosition.z);
+	camera.setPosition(spawnPosition + glm::vec3(0, 2.82f, 0));
+	player.setPosition(spawnPosition + glm::vec3(0, 2, 0));
+	player.setFreeze(true);
+
 	    // -- Main Game Loop -- //
 	while (!glfwWindowShouldClose(window))
 	{

@@ -25,6 +25,13 @@ public:
 	bool isInWater() const;
 	bool isInUnderwater() const;
 
+	void setFreeze(bool freeze) { freezePlayer = freeze; }
+	bool isFrozen() const { return freezePlayer; }
+
+	glm::vec3 getPosition() const { return position; }
+	void setPosition(const glm::vec3& newPosition) { position = newPosition; }
+	float getHeight() const { return size.y; }
+
 private:
 	glm::vec3 getLookDirection() const;
 
@@ -43,7 +50,9 @@ private:
 	GLfloat movementSpeed;
 	GLfloat jumpStrength;
 
+	bool freezePlayer = true;
+
 	bool isOnGround;
 	GLfloat gravity;
-	bool flying = true;
+	bool flying = false;
 };
