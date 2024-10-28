@@ -151,7 +151,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	mainShader.setVec4("fogColor", glm::vec4(0.5f, 0.6f, 0.7f, 1.0f));
 	mainShader.setVec3("cameraPosition", camera.getPosition());
 
-	// --- Underwater Effect ---
+	// Underwater Effect
 	mainShader.setBool("isUnderwater", player.isInUnderwater());
 
 	world.Draw(frustum);
@@ -270,11 +270,19 @@ void main::displayLoadingScreen(GLFWwindow* window, World& world, Frustum& frust
 			ImVec2 chunkPosMin = ImVec2(canvasCenter.x + (chunk->getMinBounds().x - camPos.x) * scale, canvasCenter.y + (chunk->getMinBounds().z - camPos.z) * scale);
 			ImVec2 chunkPosMax = ImVec2(canvasCenter.x + (chunk->getMaxBounds().x - camPos.x) * scale, canvasCenter.y + (chunk->getMaxBounds().z - camPos.z) * scale);
 
-			float hue = fmod(index * 0.1f, 1.0f);
-			float r = std::sin(hue * 3.14159f * 2.0f) * 0.5f + 0.5f;
-			float g = std::sin((hue + 0.33f) * 3.14159f * 2.0f) * 0.5f + 0.5f;
-			float b = std::sin((hue + 0.66f) * 3.14159f * 2.0f) * 0.5f + 0.5f;
-			ImU32 fillColor = IM_COL32(static_cast<int>(r * 255), static_cast<int>(g * 255), static_cast<int>(b * 255), 150);
+			ImU32 fillColor;
+			if ((index % 8) < 2) {
+				fillColor = IM_COL32(124, 252, 0, 190); // green
+			}
+			else if ((index % 8) < 6) {
+				fillColor = IM_COL32(123, 63, 0, 190); // brown
+			}
+			else if ((index % 8) < 7) {
+				fillColor = IM_COL32(211, 211, 211, 190); // gray
+			}
+			else {
+				fillColor = IM_COL32(0, 255, 240, 190); // blue
+			}
 
 			drawList->AddRectFilled(chunkPosMin, chunkPosMax, fillColor);
 			drawList->AddRect(chunkPosMin, chunkPosMax, IM_COL32(0, 0, 0, 255));

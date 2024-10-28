@@ -70,7 +70,7 @@ void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKe
         GLfloat currentSpeed = flying ? movementSpeed * 5.0f : movementSpeed;
         if (isShiftPressed && !flying) currentSpeed += 1.8f;
 
-        if (isCtrlPressed && !flying)
+        if (isCtrlPressed && !flying && !isInUnderwater())
         {
             currentSpeed /= 2.0f;
             if (size.y != 1.5f)
@@ -79,7 +79,7 @@ void Player::processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKe
                 size = { 0.6f, 1.5f, 0.6f };
             }
         }
-        else if (!isCtrlPressed && !flying)
+        else if (!isCtrlPressed && !flying && !isInUnderwater())
         {
             if (size.y != 1.8f)
             {
