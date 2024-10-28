@@ -14,6 +14,30 @@ constexpr uint8_t CHUNK_SIZE = 16;
 constexpr uint8_t CHUNK_HEIGHT = 128;
 constexpr uint8_t WATERLEVEL = 62;
 
+enum BlockType {
+	DIRT,
+	STONE,
+	GRASS_BLOCK,
+	SAND,
+	WATER,
+	OAK_LOG,
+	OAK_LEAF,
+	GRAVEL,
+	COBBLESTONE,
+	GLASS,
+	FLOWER1,
+	GRASS1,
+	GRASS2,
+	GRASS3,
+	FLOWER2
+};
+
+enum FaceType {
+	TOP = 4,
+	BOTTOM = 5,
+	SIDE
+};
+
 class Chunk
 {
 public:

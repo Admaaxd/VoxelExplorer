@@ -66,30 +66,30 @@ void Chunk::generateChunk()
                 {
                     if (y <= WATERLEVEL)
                     {
-                        blockTypes[index] = 4; // Water
+                        blockTypes[index] = WATER; // Water
                     }
                     continue;
                 }
 
                 if (y <= WATERLEVEL && y >= terrainHeight - 2)
                 {
-                    blockTypes[index] = 3; // Sand near water
+                    blockTypes[index] = SAND; // Sand near water
                 }
                 else if (y == terrainHeight)
                 {
-                    blockTypes[index] = 2; // Grass top
+                    blockTypes[index] = GRASS_BLOCK; // Grass top
                 }
                 else if (y >= terrainHeight - 4)
                 {
-                    blockTypes[index] = 0; // Dirt layer
+                    blockTypes[index] = DIRT; // Dirt layer
                 }
                 else if (y < terrainHeight - 4 && y > WATERLEVEL - 5)
                 {
-                    blockTypes[index] = 1; // Stone layer
+                    blockTypes[index] = STONE; // Stone layer
                 }
                 else
                 {
-                    blockTypes[index] = 1; // Stone layer
+                    blockTypes[index] = STONE; // Stone layer
                 }
             }
         }
@@ -145,19 +145,18 @@ void Chunk::generateChunk()
                     GLint grassType;
                     GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
                     if (randomValue < 0.33f)
-                        grassType = 11; // Grass 1
+                        grassType = GRASS1; // Grass 1
                     else if (randomValue < 0.67f)
-                        grassType = 12; // Grass 2
+                        grassType = GRASS2; // Grass 2
                     else
-                        grassType = 13; // Grass 3
+                        grassType = GRASS3; // Grass 3
 
                     blockTypes[indexAbove] = grassType;
                 }
                 else if (flowerChance > 0.90f)
                 {
-                    blockTypes[indexAbove] = 10; // Flower 1
+                    blockTypes[indexAbove] = (static_cast<GLfloat>(rand()) / RAND_MAX > 0.5f) ? FLOWER1 : FLOWER2;
                 }
-                // Else, other flowers in the future
             }
         }
     }
@@ -257,8 +256,8 @@ inline GLint Chunk::getIndex(GLint x, GLint y, GLint z) const
 
 inline bool Chunk::isTransparent(GLint blockType)
 {
-    return blockType == -1 || blockType == 4 || blockType == 6 || blockType == 9 ||
-        blockType == 10 || blockType == 11 || blockType == 12 || blockType == 13;
+    return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == GLASS ||
+        blockType == FLOWER1 || blockType == FLOWER2 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -584,7 +583,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 GLint blockType = blockTypes[index];
                 if (blockTypes[index] == -1) continue;
 
-                if (blockTypes[index] == 10 || blockTypes[index] == 11 || blockTypes[index] == 12 || blockTypes[index] == 13) // Flower 1 10, Grass 1 11, Grass 2 12, Grass 3 13
+                if (blockTypes[index] == FLOWER1 || blockType == FLOWER2 || blockTypes[index] == GRASS1 || blockTypes[index] == GRASS2 || blockTypes[index] == GRASS3)
                 {
                     // Add grass plant mesh
                     addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
@@ -592,7 +591,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 }
 
                 // Water block
-                if (blockType == 4) {
+                if (blockType == WATER) {
                     uint8_t lightLevel = lightLevels[index];
                     GLint textureLayer = getTextureLayer(blockType, 0);
                     GLfloat ao[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -651,26 +650,27 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
 {
     switch (blockType) {
-    case 0: return 0; // Dirt
-    case 1: return 1; // Stone
-    case 2: // Grass block
-        if (face == 4) return 2; // Top face - Grass top
-        else if (face == 5) return 0; // Bottom face - Dirt
-        else return 3; // Side faces - Grass side
-    case 3: return 4; // Sand
-    case 4: return 5; // Water
-    case 5: // Oak log
-        if (face == 4 || face == 5) return 6; // Top and bottom faces
-        else return 7; // Side faces
-    case 6: return 8; // Oak leaf
-    case 7: return 9; // Gravel
-    case 8: return 10; // Cobblestone
-    case 9: return 11; // Glass
+    case DIRT: return 0;            // Dirt
+    case STONE: return 1;           // Stone
+    case GRASS_BLOCK:               // Grass block
+        if (face == TOP) return 2;  // Top face - Grass top
+        else if (face == BOTTOM) return 0; // Bottom face - Dirt
+        else return 3;              // Side faces - Grass side
+    case SAND: return 4;            // Sand
+    case WATER: return 5;           // Water
+    case OAK_LOG:                   // Oak log
+        if (face == TOP || face == BOTTOM) return 6; // Top and bottom faces
+        else return 7;              // Side faces
+    case OAK_LEAF: return 8;        // Oak leaf
+    case GRAVEL: return 9;          // Gravel
+    case COBBLESTONE: return 10;    // Cobblestone
+    case GLASS: return 11;          // Glass
 
-    case 10: return 12; // Flower 1
-    case 11: return 13; // Grass plant 1
-    case 12: return 14; // Grass plant 2
-    case 13: return 15; // Grass plant 3
+    case FLOWER1: return 12;    // Flower 1
+    case GRASS1: return 13;     // Grass plant 1
+    case GRASS2: return 14;     // Grass plant 2
+    case GRASS3: return 15;     // Grass plant 3
+    case FLOWER2: return 16;    // Flower 2
     
     default: return 0; // Default to dirt
     }

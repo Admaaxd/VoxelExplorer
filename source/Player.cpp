@@ -172,7 +172,7 @@ bool Player::rayCast(glm::vec3& hitPos, glm::vec3& hitNormal, GLint& blockType) 
 
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
             blockType = chunk->getBlockType(localX, localY, localZ);
-            if (blockType != -1 && blockType != 4) {
+            if (blockType != -1 && blockType != WATER) {
                 hitPos = glm::vec3(blockX, blockY, blockZ);
 
                 // Determine which face was hit
@@ -218,7 +218,7 @@ void Player::removeBlock()
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ))
         {
             GLint blockAboveType = chunk->getBlockType(localX, localY, localZ);
-            if (blockAboveType == 10 || blockAboveType == 11 || blockAboveType == 12 || blockAboveType == 13)
+            if (blockAboveType == FLOWER1 || blockAboveType == FLOWER2 || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3)
             {
                 chunk->setBlockType(localX, localY, localZ, -1);
             }
@@ -246,13 +246,13 @@ void Player::placeBlock() {
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
             GLint blockType = chunk->getBlockType(localX, localY, localZ);
 
-            if (selectedBlockType == 10) {
-                if (blockType != 0 && blockType != 2) {
+            if (selectedBlockType == FLOWER1) {
+                if (blockType != DIRT && blockType != GRASS_BLOCK) {
                     return; // Flower only can be placed on dirt or grass block
                 }
             }
 
-            if ((blockType == 4 || blockType == 11 || blockType == 12 || blockType == 13) && !isBlockInsidePlayer(placePos)) {
+            if ((blockType == WATER || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) && !isBlockInsidePlayer(placePos)) {
                 chunk->setBlockType(localX, localY, localZ, selectedBlockType);
                 return;
             }
@@ -378,7 +378,7 @@ bool Player::checkCollision(const glm::vec3& position) {
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     GLint blockType = chunk->getBlockType(localX, localY, localZ);
                     // Ignore non-solid blocks
-                    if (blockType == -1 || blockType == 4 || blockType == 11 || blockType == 12 || blockType == 13 || blockType == 10) {
+                    if (blockType == -1 || blockType == WATER || blockType == FLOWER1 || blockType == FLOWER2 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) {
                         continue; // No collision
                     }
                     // Collision detected
@@ -419,7 +419,7 @@ bool Player::isInWater() const {
 
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     int16_t blockType = chunk->getBlockType(localX, localY, localZ);
-                    if (blockType == 4) {
+                    if (blockType == WATER) {
                         return true; // Player is in water
                     }
                 }
@@ -447,7 +447,7 @@ bool Player::isInUnderwater() const {
 
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     int16_t blockType = chunk->getBlockType(localX, localY, localZ);
-                    if (blockType != 4) {
+                    if (blockType != WATER) {
                         return false;
                     }
                 }

@@ -37,7 +37,8 @@ private:
         "textures/grass1.png",              // GRASS 1 -> 13
         "textures/grass2.png",              // GRASS 2 -> 14
         "textures/grass3.png",              // GRASS 3 -> 15
-        
+        "textures/flower2.png",             // FLOWER 2 -> 16
+
     };
 };
 
