@@ -4,6 +4,7 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D sunTexture;
+uniform bool isUnderwater;
 
 // Blur intensity
 const float blurRadius = 0.004; 
@@ -25,6 +26,12 @@ void main() {
 
     if (texColor.a < 0.001)
         discard;
+
+    if (isUnderwater) {
+        vec3 underwaterTint = vec3(0.0, 0.3, 0.6);
+        float underwaterIntensity = 0.85;
+        texColor.rgb = mix(texColor.rgb, underwaterTint, underwaterIntensity);
+    }
 
     FragColor = texColor;
 }

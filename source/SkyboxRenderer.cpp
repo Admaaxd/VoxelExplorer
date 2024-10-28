@@ -250,7 +250,7 @@ void SkyboxRenderer::renderSkybox(const glm::mat4& view, const glm::mat4& projec
     glEnable(GL_CULL_FACE);
 }
 
-void SkyboxRenderer::renderSun(const glm::mat4& view, const glm::mat4& projection) {
+void SkyboxRenderer::renderSun(const glm::mat4& view, const glm::mat4& projection, bool isUnderwater) {
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -261,6 +261,7 @@ void SkyboxRenderer::renderSun(const glm::mat4& view, const glm::mat4& projectio
     sunMoonShader.use();
     sunMoonShader.setMat4("projection", projection);
     sunMoonShader.setMat4("view", view);
+    sunMoonShader.setBool("isUnderwater", isUnderwater);
 
     glm::mat4 model = glm::mat4(1.0f);
 
@@ -292,7 +293,7 @@ glm::vec3 SkyboxRenderer::getSunPosition() const {
     return sunPosition;
 }
 
-void SkyboxRenderer::renderMoon(const glm::mat4& view, const glm::mat4& projection) {
+void SkyboxRenderer::renderMoon(const glm::mat4& view, const glm::mat4& projection, bool isUnderwater) {
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -303,6 +304,7 @@ void SkyboxRenderer::renderMoon(const glm::mat4& view, const glm::mat4& projecti
     sunMoonShader.use();
     sunMoonShader.setMat4("projection", projection);
     sunMoonShader.setMat4("view", view);
+    sunMoonShader.setBool("isUnderwater", isUnderwater);
 
     glm::mat4 model = glm::mat4(1.0f);
 

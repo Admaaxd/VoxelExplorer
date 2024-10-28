@@ -18,8 +18,8 @@ public:
     ~SkyboxRenderer();
 
     void renderSkybox(const glm::mat4& view, const glm::mat4& projection, Player& player);
-    void renderSun(const glm::mat4& view, const glm::mat4& projection);
-    void renderMoon(const glm::mat4& view, const glm::mat4& projection);
+    void renderSun(const glm::mat4& view, const glm::mat4& projection, bool isUnderwater);
+    void renderMoon(const glm::mat4& view, const glm::mat4& projection, bool isUnderwater);
     glm::vec3 getSunPosition() const;
     glm::vec3 getMoonPosition() const;
     void updateSunAndMoonPosition(float deltaTime);

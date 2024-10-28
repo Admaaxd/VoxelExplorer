@@ -345,8 +345,8 @@ void main::renderSkybox(SkyboxRenderer& skybox, glm::mat4& view, const glm::mat4
 {
 	view = glm::mat4(glm::mat3(camera.getViewMatrix()));
 	skybox.renderSkybox(view, projection, player);
-	skybox.renderSun(view, projection);
-	skybox.renderMoon(view, projection);
+	skybox.renderSun(view, projection, player.isInUnderwater());
+	skybox.renderMoon(view, projection, player.isInUnderwater());
 }
 
 void main::initializeImGui(GLFWwindow* window) {
