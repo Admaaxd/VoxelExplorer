@@ -100,21 +100,28 @@ void Chunk::generateChunk()
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
         {
-            GLint globalX = chunkX * CHUNK_SIZE + x;
-            GLint globalZ = chunkZ * CHUNK_SIZE + z;
+            int16_t globalX = chunkX * CHUNK_SIZE + x;
+            int16_t globalZ = chunkZ * CHUNK_SIZE + z;
 
             GLfloat treeValue = treeNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
             if (treeValue > 0.95f) // Threshold for tree placement
             {
-                GLint terrainHeight = getTerrainHeightAt(globalX, globalZ);
+                int16_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
                 if (terrainHeight > WATERLEVEL + 1 && terrainHeight < CHUNK_HEIGHT - 15)
                 {
-                    GLint index = getIndex(x, terrainHeight, z);
+                    int16_t index = getIndex(x, terrainHeight, z);
                     if (blockTypes[index] == 2) // Grass block
                     {
-                        //Structure::generateBaseTree(*this, x, terrainHeight + 1, z);
-                        Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                        // Randomly select between green and orange leaf trees
+                        if (rand() % 2 == 0)
+                        {
+                            Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                        }
+                        else
+                        {
+                            Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
+                        }
                     }
                 }
             }
@@ -263,7 +270,7 @@ inline GLint Chunk::getIndex(GLint x, GLint y, GLint z) const
 
 inline bool Chunk::isTransparent(GLint blockType)
 {
-    return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == GLASS ||
+    return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == OAK_LEAF_ORANGE || blockType == GLASS ||
         blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3;
 }
 
@@ -658,32 +665,38 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
 {
     switch (blockType) {
-    case DIRT: return 0;            // Dirt
-    case STONE: return 1;           // Stone
-    case GRASS_BLOCK:               // Grass block
-        if (face == TOP) return 2;  // Top face - Grass top
-        else if (face == BOTTOM) return 0; // Bottom face - Dirt
-        else return 3;              // Side faces - Grass side
-    case SAND: return 4;            // Sand
-    case WATER: return 5;           // Water
-    case OAK_LOG:                   // Oak log
-        if (face == TOP || face == BOTTOM) return 6; // Top and bottom faces
-        else return 7;              // Side faces
-    case OAK_LEAF: return 8;        // Oak leaf
-    case GRAVEL: return 9;          // Gravel
-    case COBBLESTONE: return 10;    // Cobblestone
-    case GLASS: return 11;          // Glass
+    case DIRT: return 0;
+    case STONE: return 1;
 
-    case FLOWER1: return 12;    // Flower 1
-    case GRASS1: return 13;     // Grass plant 1
-    case GRASS2: return 14;     // Grass plant 2
-    case GRASS3: return 15;     // Grass plant 3
-    case FLOWER2: return 16;    // Flower 2
-    case FLOWER3: return 17;    // Flower 3
-    case FLOWER4: return 18;    // Flower 4
-    case FLOWER5: return 19;    // Flower 5
+    case GRASS_BLOCK:
+        if (face == TOP) return 2;
+        else if (face == BOTTOM) return 0;
+        else return 3;
+
+    case SAND: return 4;
+    case WATER: return 5;
+
+    case OAK_LOG:
+        if (face == TOP || face == BOTTOM) return 6;
+        else return 7;
+
+    case OAK_LEAF: return 8;
+    case GRAVEL: return 9;
+    case COBBLESTONE: return 10;
+    case GLASS: return 11;
+
+    case FLOWER1: return 12;
+    case GRASS1: return 13;
+    case GRASS2: return 14;
+    case GRASS3: return 15;
+    case FLOWER2: return 16;
+    case FLOWER3: return 17;
+    case FLOWER4: return 18;
+    case FLOWER5: return 19;
+
+    case OAK_LEAF_ORANGE: return 20;
     
-    default: return 0; // Default to dirt
+    default: return DIRT;
     }
 }
 

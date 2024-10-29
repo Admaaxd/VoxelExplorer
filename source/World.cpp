@@ -348,14 +348,14 @@ bool World::ChunkCoordComparator::operator()(const ChunkCoord& a, const ChunkCoo
 
 GLfloat World::getTerrainHeightAt(GLfloat x, GLfloat z)
 {
-	GLint chunkX = static_cast<GLint>(floor(x)) / CHUNK_SIZE;
-	GLint chunkZ = static_cast<GLint>(floor(z)) / CHUNK_SIZE;
+	int16_t chunkX = static_cast<int16_t>(floor(x)) / CHUNK_SIZE;
+	int16_t chunkZ = static_cast<int16_t>(floor(z)) / CHUNK_SIZE;
 
 	Chunk* chunk = getChunk(chunkX, chunkZ);
 	if (!chunk) return CHUNK_HEIGHT;
 
-	GLint localX = static_cast<GLint>(floor(x)) % CHUNK_SIZE;
-	GLint localZ = static_cast<GLint>(floor(z)) % CHUNK_SIZE;
+	int16_t localX = static_cast<int16_t>(floor(x)) % CHUNK_SIZE;
+	int16_t localZ = static_cast<int16_t>(floor(z)) % CHUNK_SIZE;
 
 	if (localX < 0) localX += CHUNK_SIZE;
 	if (localZ < 0) localZ += CHUNK_SIZE;

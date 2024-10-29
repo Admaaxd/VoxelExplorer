@@ -13,6 +13,8 @@ public:
 
     static void generateBaseProceduralTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z);
 
+    static void generateProceduralTreeOrangeLeaves(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z);
+
 };
 
 #endif // STRUCTURES_H

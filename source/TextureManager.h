@@ -41,6 +41,7 @@ private:
         "textures/flower3.png",             // FLOWER 3 -> 17
         "textures/flower4.png",             // FLOWER 4 -> 18
         "textures/flower5.png",             // FLOWER 5 -> 19
+        "textures/oak_leaf_orange.png",     // OAK LEAF ORANGE -> 20
 
     };
 };
