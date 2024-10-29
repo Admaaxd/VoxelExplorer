@@ -33,7 +33,8 @@ enum BlockType {
 	FLOWER3,
 	FLOWER4,
 	FLOWER5,
-	OAK_LEAF_ORANGE
+	OAK_LEAF_ORANGE,
+	OAK_LEAF_YELLOW
 };
 
 enum FaceType {

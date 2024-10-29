@@ -104,23 +104,28 @@ void Chunk::generateChunk()
             int16_t globalZ = chunkZ * CHUNK_SIZE + z;
 
             GLfloat treeValue = treeNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
-            if (treeValue > 0.95f) // Threshold for tree placement
+            if (treeValue > 0.95f)
             {
                 int16_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
                 if (terrainHeight > WATERLEVEL + 1 && terrainHeight < CHUNK_HEIGHT - 15)
                 {
                     int16_t index = getIndex(x, terrainHeight, z);
-                    if (blockTypes[index] == 2) // Grass block
+                    if (blockTypes[index] == GRASS_BLOCK)
                     {
-                        // Randomly select between green and orange leaf trees
-                        if (rand() % 2 == 0)
+                        uint8_t randomTreeType = rand() % 3;
+
+                        if (randomTreeType == 0)
                         {
                             Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
                         }
-                        else
+                        else if (randomTreeType == 1)
                         {
                             Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
+                        }
+                        else
+                        {
+                            Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
                         }
                     }
                 }
@@ -133,13 +138,13 @@ void Chunk::generateChunk()
     {
         for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
         {
-            GLint globalX = chunkX * CHUNK_SIZE + x;
-            GLint globalZ = chunkZ * CHUNK_SIZE + z;
+            int16_t globalX = chunkX * CHUNK_SIZE + x;
+            int16_t globalZ = chunkZ * CHUNK_SIZE + z;
 
             uint8_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
 
-            GLint indexBelow = getIndex(x, terrainHeight, z);
-            GLint indexAbove = getIndex(x, terrainHeight + 1, z);
+            int16_t indexBelow = getIndex(x, terrainHeight, z);
+            int16_t indexAbove = getIndex(x, terrainHeight + 1, z);
 
             if (blockTypes[indexBelow] == 2 && blockTypes[indexAbove] == -1)
             {
@@ -149,7 +154,7 @@ void Chunk::generateChunk()
                 if (grassChance > 0.5f && grassChance > flowerChance)
                 {
                     // Place grass
-                    GLint grassType;
+                    int16_t grassType;
                     GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
                     if (randomValue < 0.33f)
                         grassType = GRASS1; // Grass 1
@@ -270,7 +275,7 @@ inline GLint Chunk::getIndex(GLint x, GLint y, GLint z) const
 
 inline bool Chunk::isTransparent(GLint blockType)
 {
-    return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == OAK_LEAF_ORANGE || blockType == GLASS ||
+    return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == OAK_LEAF_ORANGE || blockType == OAK_LEAF_YELLOW || blockType == GLASS ||
         blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3;
 }
 
@@ -695,6 +700,7 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case FLOWER5: return 19;
 
     case OAK_LEAF_ORANGE: return 20;
+    case OAK_LEAF_YELLOW: return 21;
     
     default: return DIRT;
     }

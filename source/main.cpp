@@ -123,7 +123,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	frustum.update(projection * view);
 	glm::vec3 playerPosition = camera.getPosition();
 	world.updatePlayerPosition(playerPosition, frustum);
-	world.processChunkLoadQueue(1, 30);
+	world.processChunkLoadQueue(1, 45);
 
 	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
 	player.update(deltaTime);
@@ -305,7 +305,7 @@ void main::displayLoadingScreen(GLFWwindow* window, World& world, Frustum& frust
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
-		world.processChunkLoadQueue(1, 0.5);
+		world.processChunkLoadQueue(1, 1);
 	}
 }
 
@@ -375,7 +375,7 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	ImGui::Text("Select Block Type:");
 	static const char* blockTypeNames[] = {
 		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone", "Glass" 
-		,"Flower1", "Grass1", "Grass2", "Grass3", "Flower2", "Flower3", "Flower4", "Flower5"
+		,"Flower1", "Grass1", "Grass2", "Grass3", "Flower2", "Flower3", "Flower4", "Flower5", "Oak leaf orange", "Oak leaf yellow"
 	};
 
 	GLint selectedBlockType = player.getSelectedBlockType();

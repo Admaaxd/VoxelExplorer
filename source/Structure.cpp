@@ -228,3 +228,83 @@ void Structure::generateProceduralTreeOrangeLeaves(Chunk& chunk, uint8_t x, uint
         }
     }
 }
+
+void Structure::generateProceduralTreeYellowLeaves(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
+    uint8_t treeHeight = 10 + rand() % 6;
+
+    auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
+        int32_t newX = x + offsetX;
+        int32_t newY = y + offsetY;
+        int32_t newZ = z + offsetZ;
+
+        int32_t globalX = chunk.chunkX * CHUNK_SIZE + newX;
+        int32_t globalZ = chunk.chunkZ * CHUNK_SIZE + newZ;
+
+        int32_t targetChunkX = globalX / CHUNK_SIZE;
+        if (globalX < 0 && globalX % CHUNK_SIZE != 0) targetChunkX -= 1;
+
+        int32_t targetChunkZ = globalZ / CHUNK_SIZE;
+        if (globalZ < 0 && globalZ % CHUNK_SIZE != 0) targetChunkZ -= 1;
+
+        int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
+        int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
+
+        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+
+        if (targetChunk) {
+            targetChunk->setBlockType(localX, newY, localZ, blockType);
+            targetChunk->needsMeshUpdate = true;
+        }
+        else {
+            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
+        }
+    };
+
+    for (uint8_t i = 0; i < treeHeight - 1; ++i) {
+        setLocalBlockType(0, i, 0, OAK_LOG);
+    }
+
+    setLocalBlockType(0, treeHeight - 1, 0, OAK_LEAF_YELLOW);
+
+    int8_t leafRadius = 3 + rand() % 2;
+    int8_t leafStart = treeHeight - (leafRadius + 3);
+
+    FastNoiseLite leafNoise;
+    leafNoise.SetSeed(rand() * 5);
+    leafNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    leafNoise.SetFrequency(2.0f);
+
+    FastNoiseLite cellularNoise;
+    cellularNoise.SetSeed(rand() * 7);
+    cellularNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
+    cellularNoise.SetFrequency(0.7f);
+
+    for (int8_t yOffset = 0; yOffset <= leafRadius + 2; ++yOffset) {
+        int8_t layerY = leafStart + yOffset;
+        int8_t radius = leafRadius - yOffset / 2;
+
+        for (int8_t xOffset = -radius; xOffset <= radius; ++xOffset) {
+            for (int8_t zOffset = -radius; zOffset <= radius; ++zOffset) {
+                GLfloat distance = sqrtf(xOffset * xOffset + zOffset * zOffset);
+
+                if (distance <= radius + 0.5f) {
+                    GLfloat noiseValue = leafNoise.GetNoise(
+                        static_cast<GLfloat>(chunk.chunkX * CHUNK_SIZE + x + xOffset),
+                        static_cast<GLfloat>(layerY),
+                        static_cast<GLfloat>(chunk.chunkZ * CHUNK_SIZE + z + zOffset)
+                    );
+
+                    GLfloat cellularNoiseValue = cellularNoise.GetNoise(
+                        static_cast<GLfloat>(chunk.chunkX * CHUNK_SIZE + x + xOffset),
+                        static_cast<GLfloat>(layerY),
+                        static_cast<GLfloat>(chunk.chunkZ * CHUNK_SIZE + z + zOffset)
+                    );
+
+                    if (noiseValue > -0.2f && cellularNoiseValue < 0.3f) {
+                        setLocalBlockType(xOffset, layerY, zOffset, OAK_LEAF_YELLOW);
+                    }
+                }
+            }
+        }
+    }
+}
