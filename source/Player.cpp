@@ -218,7 +218,8 @@ void Player::removeBlock()
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ))
         {
             GLint blockAboveType = chunk->getBlockType(localX, localY, localZ);
-            if (blockAboveType == FLOWER1 || blockAboveType == FLOWER2 || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3)
+            if (blockAboveType == FLOWER1 || blockAboveType == FLOWER2 || blockAboveType == FLOWER3 || blockAboveType == FLOWER4 || blockAboveType == FLOWER5
+                || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3)
             {
                 chunk->setBlockType(localX, localY, localZ, -1);
             }
@@ -246,7 +247,8 @@ void Player::placeBlock() {
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
             GLint blockType = chunk->getBlockType(localX, localY, localZ);
 
-            if (selectedBlockType == FLOWER1) {
+            if (selectedBlockType == FLOWER1 || selectedBlockType == FLOWER2 || selectedBlockType == FLOWER3 || selectedBlockType == FLOWER4 || selectedBlockType == FLOWER5
+                || selectedBlockType == GRASS1 || selectedBlockType == GRASS2 || selectedBlockType == GRASS3) {
                 if (blockType != DIRT && blockType != GRASS_BLOCK) {
                     return; // Flower only can be placed on dirt or grass block
                 }
@@ -378,7 +380,8 @@ bool Player::checkCollision(const glm::vec3& position) {
                 if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
                     GLint blockType = chunk->getBlockType(localX, localY, localZ);
                     // Ignore non-solid blocks
-                    if (blockType == -1 || blockType == WATER || blockType == FLOWER1 || blockType == FLOWER2 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) {
+                    if (blockType == -1 || blockType == WATER || blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5
+                        || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) {
                         continue; // No collision
                     }
                     // Collision detected

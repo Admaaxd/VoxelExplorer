@@ -38,6 +38,9 @@ private:
         "textures/grass2.png",              // GRASS 2 -> 14
         "textures/grass3.png",              // GRASS 3 -> 15
         "textures/flower2.png",             // FLOWER 2 -> 16
+        "textures/flower3.png",             // FLOWER 3 -> 17
+        "textures/flower4.png",             // FLOWER 4 -> 18
+        "textures/flower5.png",             // FLOWER 5 -> 19
 
     };
 };

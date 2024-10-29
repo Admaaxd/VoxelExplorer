@@ -374,7 +374,8 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	ImGui::Separator();
 	ImGui::Text("Select Block Type:");
 	static const char* blockTypeNames[] = {
-		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone", "Glass" ,"Flower1", "Grass1", "Grass2", "Grass3", "Flower2"
+		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone", "Glass" 
+		,"Flower1", "Grass1", "Grass2", "Grass3", "Flower2", "Flower3", "Flower4", "Flower5"
 	};
 
 	GLint selectedBlockType = player.getSelectedBlockType();

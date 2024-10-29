@@ -153,9 +153,16 @@ void Chunk::generateChunk()
 
                     blockTypes[indexAbove] = grassType;
                 }
-                else if (flowerChance > 0.90f)
+                else if (flowerChance > 0.87f)
                 {
-                    blockTypes[indexAbove] = (static_cast<GLfloat>(rand()) / RAND_MAX > 0.5f) ? FLOWER1 : FLOWER2;
+                    int8_t flowerType = rand() % 5;
+                    switch (flowerType) {
+                        case 0: blockTypes[indexAbove] = FLOWER1; break;
+                        case 1: blockTypes[indexAbove] = FLOWER2; break;
+                        case 2: blockTypes[indexAbove] = FLOWER3; break;
+                        case 3: blockTypes[indexAbove] = FLOWER4; break;
+                        case 4: blockTypes[indexAbove] = FLOWER5; break;
+                    }
                 }
             }
         }
@@ -257,7 +264,7 @@ inline GLint Chunk::getIndex(GLint x, GLint y, GLint z) const
 inline bool Chunk::isTransparent(GLint blockType)
 {
     return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == GLASS ||
-        blockType == FLOWER1 || blockType == FLOWER2 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3;
+        blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -583,7 +590,8 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 GLint blockType = blockTypes[index];
                 if (blockTypes[index] == -1) continue;
 
-                if (blockTypes[index] == FLOWER1 || blockType == FLOWER2 || blockTypes[index] == GRASS1 || blockTypes[index] == GRASS2 || blockTypes[index] == GRASS3)
+                if (blockTypes[index] == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 
+                    || blockTypes[index] == GRASS1 || blockTypes[index] == GRASS2 || blockTypes[index] == GRASS3)
                 {
                     // Add grass plant mesh
                     addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
@@ -671,6 +679,9 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case GRASS2: return 14;     // Grass plant 2
     case GRASS3: return 15;     // Grass plant 3
     case FLOWER2: return 16;    // Flower 2
+    case FLOWER3: return 17;    // Flower 3
+    case FLOWER4: return 18;    // Flower 4
+    case FLOWER5: return 19;    // Flower 5
     
     default: return 0; // Default to dirt
     }

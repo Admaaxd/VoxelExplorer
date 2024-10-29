@@ -29,7 +29,10 @@ enum BlockType {
 	GRASS1,
 	GRASS2,
 	GRASS3,
-	FLOWER2
+	FLOWER2,
+	FLOWER3,
+	FLOWER4,
+	FLOWER5
 };
 
 enum FaceType {
