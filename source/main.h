@@ -21,6 +21,7 @@
 #include "Crosshair.h"
 #include "blockOutline.h"
 #include "SkyboxRenderer.h"
+#include "LoadingScreen.h"
 
 class main
 {
@@ -32,8 +33,6 @@ public:
 	static void initializeGLAD();
 	static void framebuffer_size_callback(GLFWwindow* window, GLint width, GLint height);
 	static void setupRenderingState();
-
-	static void displayLoadingScreen(GLFWwindow* window, World& world, Frustum& frustum);
 
 	static void updateFPS();
 
