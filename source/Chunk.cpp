@@ -47,16 +47,14 @@ void Chunk::generateChunk()
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
-                GLuint index = getIndex(x, y, z);
+                uint16_t index = getIndex(x, y, z);
 
                 // cave noise
                 GLfloat caveValue = caveNoise.GetNoise(globalX, static_cast<GLfloat>(y), globalZ);
 
-                // Vary cave thresholds based on height and tunnel values for complexity
                 bool isMainCave = caveValue > 0.35f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
-                bool isTunnel = caveValue > 0.30f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer - 20);
 
-                if (isMainCave || isTunnel)
+                if (isMainCave)
                 {
                     blockTypes[index] = -1; // Air block for caves and tunnels
                     continue;
@@ -252,7 +250,7 @@ GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
         + mountainNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f
         + detailNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.2f;
 
-    return static_cast<GLint>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT - 30)) + 30;
+    return static_cast<int16_t>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT));
 }
 
 void Chunk::placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType)
