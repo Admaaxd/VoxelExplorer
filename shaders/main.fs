@@ -3,7 +3,6 @@ out vec4 FragColor;
 
 in vec2 texCoord;
 in float texLayer;
-in float fogFactor;
 in vec3 FragPos;
 in vec3 Normal;
 in float LightLevel;
@@ -17,14 +16,14 @@ uniform vec3 viewPos;
 uniform vec3 moonDirection;
 uniform vec3 moonColor;
 
-uniform vec4 fogColor;  // Fog color, including alpha
+uniform vec4 fogColor;
 uniform bool isUnderwater;
 
 void main()
 {
     // Sample the texture color
     vec4 texColor = texture(texArray, vec3(texCoord, texLayer));
-    
+
     if (texColor.a < 0.95)
         discard;
 
@@ -67,22 +66,35 @@ void main()
     // Compute the final lighting result
     vec3 result = lighting * texColor.rgb;
 
-    // --- UNDERWATER EFFECT ---
-    vec3 underwaterEffect = result;
+    // Compute distance from the camera to the fragment position for fog
+    float distance = length(FragPos - viewPos);
 
+    // Initialize final color
+    vec3 finalColor = result;
+
+    // Apply underwater effect
     if (isUnderwater)
     {
         float depthFactor = clamp((FragPos.y - viewPos.y) * -0.05, 0.0, 1.0);
         vec3 underwaterColor = vec3(0.0, 0.3, 0.6);
-        underwaterEffect = mix(result, underwaterColor, depthFactor);
+        vec3 underwaterEffect = mix(result, underwaterColor, depthFactor);
 
         float fogDensity = 0.05;
-        float distance = length(FragPos - viewPos);
         float fogFactorUnderwater = exp(-distance * fogDensity);
         underwaterEffect = mix(underwaterColor, underwaterEffect, fogFactorUnderwater);
-    }
 
-    vec3 finalColor = isUnderwater ? underwaterEffect : mix(fogColor.rgb, result, fogFactor);
+        finalColor = underwaterEffect;
+    }
+    else
+    {
+        float fogDensity = 0.0084;
+
+        float fogFactor = exp(-pow(distance * fogDensity, 2.0));
+
+        fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+        finalColor = mix(fogColor.rgb, result, fogFactor);
+    }
 
     // Output the final color
     FragColor = vec4(finalColor, texColor.a);
