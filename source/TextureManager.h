@@ -2,6 +2,7 @@
 #define TEXTURE_MANAGER_H
 
 #include "stb_image.h"
+#include "BlockTypes.h"
 #include <vector>
 #include <string>
 #include <iostream>
@@ -14,10 +15,15 @@ public:
     ~TextureManager();
     GLuint getTextureID() const;
 
+    GLuint getInventoryTextureID(GLint blockType) const;
+
 private:
     GLuint textureID;
-    std::vector<std::string> textures;
     void loadTextures();
+    std::vector<std::string> textures;
+
+    std::vector<GLuint> inventoryTextureIDs;
+    void loadInventoryTextures();
 
     const std::vector<std::string> texturePaths = 
     {

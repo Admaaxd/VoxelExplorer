@@ -3,9 +3,14 @@
 #include "World.h"
 #include "Camera.h"
 
+struct InventorySlot {
+	GLint blockType = -1; // Empty
+	uint8_t stackSize = 0;
+};
+
 class Player {
 public:
-	Player(Camera& camera, World& world);
+	Player(Camera& camera, World& world, TextureManager* textureManager);
 
 	void handleMouseInput(GLint button, GLint action, bool isGUIEnabled);
 	void processInput(GLFWwindow* window, bool& isGUIEnabled, bool& escapeKeyPressedLastFrame, GLfloat& lastX, GLfloat& lastY);
@@ -35,8 +40,14 @@ public:
 	GLint getSelectedInventorySlot() const { return selectedInventorySlot; }
 	void setSelectedInventorySlot(int8_t slot);
 
+	bool addItemToInventory(GLint blockType);
+	InventorySlot getInventorySlot(uint8_t index) const;
+	GLuint getTextureForBlock(GLint blockType) const;
+
 private:
 	glm::vec3 getLookDirection() const;
+
+	GLint findAvailableSlot(GLint blockType);
 
 	Camera& camera;
 	World& world;
@@ -59,5 +70,8 @@ private:
 	GLfloat gravity;
 	bool flying = false;
 
+	std::array<InventorySlot, 9> inventory;
 	uint8_t selectedInventorySlot = 0;
+
+	TextureManager* textureManager;
 };

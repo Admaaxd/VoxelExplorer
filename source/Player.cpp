@@ -1,7 +1,7 @@
 #include "Player.h"
 
-Player::Player(Camera& camera, World& world)
-    : camera(camera), world(world), selectedBlockType(0),
+Player::Player(Camera& camera, World& world, TextureManager* textureManager)
+    : camera(camera), world(world), textureManager(textureManager), selectedBlockType(0),
     position(camera.getPosition()), velocity(0.0f), size(0.6f, 1.8f, 0.6f),
     isOnGround(false), gravity(-22.0), jumpStrength(7.2f), movementSpeed(5.0f) {}
 
@@ -197,12 +197,15 @@ bool Player::rayCast(glm::vec3& hitPos, glm::vec3& hitNormal, GLint& blockType) 
     return false;
 }
 
-void Player::removeBlock()
+void Player::removeBlock() 
 {
     glm::vec3 hitPos, hitNormal;
     GLint blockType;
-    if (rayCast(hitPos, hitNormal, blockType))
+
+    if (rayCast(hitPos, hitNormal, blockType)) 
     {
+        bool addedToInventory = addItemToInventory(blockType);
+
         world.setBlock(hitPos.x, hitPos.y, hitPos.z, -1);
 
         glm::vec3 blockAbove = hitPos + glm::vec3(0, 1, 0);
@@ -215,15 +218,17 @@ void Player::removeBlock()
         localX = (localX + CHUNK_SIZE) % CHUNK_SIZE;
         localZ = (localZ + CHUNK_SIZE) % CHUNK_SIZE;
 
-        if (Chunk* chunk = world.getChunk(chunkX, chunkZ))
+        if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) 
         {
             GLint blockAboveType = chunk->getBlockType(localX, localY, localZ);
             if (blockAboveType == FLOWER1 || blockAboveType == FLOWER2 || blockAboveType == FLOWER3 || blockAboveType == FLOWER4 || blockAboveType == FLOWER5
-                || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3)
+                || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3) 
             {
                 chunk->setBlockType(localX, localY, localZ, -1);
             }
         }
+
+        if (!addedToInventory) return;
     }
 }
 
@@ -286,6 +291,49 @@ void Player::setSelectedInventorySlot(int8_t slot)
         // Scroll up
         selectedInventorySlot = (selectedInventorySlot == 0) ? 8 : selectedInventorySlot - 1;
     }
+}
+
+bool Player::addItemToInventory(GLint blockType) {
+    int8_t slotIndex = findAvailableSlot(blockType);
+
+    if (slotIndex == -1) {
+        return false;
+    }
+
+    inventory[slotIndex].blockType = blockType;
+    inventory[slotIndex].stackSize++;
+    return true;
+}
+
+GLint Player::findAvailableSlot(GLint blockType) {
+    for (int8_t i = 0; i < inventory.size(); i++) {
+        if (inventory[i].blockType == blockType && inventory[i].stackSize < 64) {
+            return i;
+        }
+    }
+
+    for (int8_t i = 0; i < inventory.size(); i++) {
+        if (inventory[i].blockType == -1) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+InventorySlot Player::getInventorySlot(uint8_t index) const {
+    if (index < inventory.size()) {
+        return inventory[index];
+    }
+    return InventorySlot();
+}
+
+GLuint Player::getTextureForBlock(GLint blockType) const
+{
+    if (textureManager)
+    {
+        return textureManager->getInventoryTextureID(blockType);
+    }
+    return 0;
 }
 
 glm::vec3 Player::getLookDirection() const

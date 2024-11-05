@@ -72,8 +72,9 @@ int main()
 	BlockOutline blockOutline;
 
 	Frustum frustum;
+	TextureManager textureManager;
 	World world(frustum);
-	Player player(camera, world);
+	Player player(camera, world, &textureManager);
 	glfwSetWindowUserPointer(window, &player);
 	glfwSetScrollCallback(window, main::scroll_callback);
 	glfwSetMouseButtonCallback(window, main::mouseButtonCallback);
@@ -307,7 +308,7 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 	GLint windowWidth, windowHeight;
 	glfwGetWindowSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
 
-	GLfloat hotbarWidth = 550;
+	GLfloat hotbarWidth = 600;
 	GLfloat hotbarHeight = 70;
 	GLfloat hotbarX = (windowWidth - hotbarWidth) / 2;
 	GLfloat hotbarY = windowHeight - hotbarHeight;
@@ -315,24 +316,73 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 	ImGui::SetNextWindowPos(ImVec2(hotbarX, hotbarY), ImGuiCond_Always);
 	ImGui::SetNextWindowSize(ImVec2(hotbarWidth, hotbarHeight), ImGuiCond_Always);
 
-	ImGui::Begin("InventoryHotbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+	ImGui::Begin("InventoryHotbar", nullptr,
+		ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+		ImGuiWindowFlags_NoBackground);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(1, 1));
 
+	ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
 	for (uint8_t i = 0; i < 9; i++)
 	{
+		const InventorySlot& slot = player.getInventorySlot(i);
+
+		// Set slot color
 		if (i == selectedSlot)
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.8f, 0.4f, 0.5f));
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.8f, 0.4f, 0.5f)); // Highlighted color
 		else
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.4f));
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));   // Default color
 
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
-
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f); // Thicker border
 		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
 
+		// Render the slot
 		ImGui::Button(("##slot" + std::to_string(i)).c_str(), ImVec2(50, 50));
+
+		// Get the position and size of the slot
+		ImVec2 slotPos = ImGui::GetItemRectMin();
+		ImVec2 slotSize = ImGui::GetItemRectSize();
+
+		if (slot.blockType != -1)
+		{
+			GLuint textureID = player.getTextureForBlock(slot.blockType);
+			if (textureID != 0)
+			{
+				ImVec2 imageSize = ImVec2(40, 40);
+				ImVec2 imagePos = ImVec2(
+					slotPos.x + (slotSize.x - imageSize.x) / 2,
+					slotPos.y + (slotSize.y - imageSize.y) / 2
+				);
+
+				// Draw the image directly using the draw list
+				draw_list->AddImage(
+					(void*)(intptr_t)textureID,
+					imagePos,
+					ImVec2(imagePos.x + imageSize.x, imagePos.y + imageSize.y)
+				);
+			}
+		}
+
+		// Render stack count as an overlay using the draw list
+		if (slot.stackSize > 1)
+		{
+			// Position the text in the bottom-right corner
+			ImVec2 textSize = ImGui::CalcTextSize(std::to_string(slot.stackSize).c_str());
+			ImVec2 textPos = ImVec2(
+				slotPos.x + slotSize.x - textSize.x - 5,
+				slotPos.y + slotSize.y - textSize.y - 2
+			);
+
+			draw_list->AddText(
+				textPos,
+				IM_COL32(255, 255, 255, 255), // White color
+				std::to_string(slot.stackSize).c_str()
+			);
+		}
 
 		ImGui::PopStyleColor(4);
 		ImGui::PopStyleVar();

@@ -1,7 +1,7 @@
 #pragma once
 
 enum BlockType {
-	DIRT,
+	DIRT = 0,
 	STONE,
 	GRASS_BLOCK,
 	SAND,
