@@ -276,6 +276,18 @@ uint8_t Player::getSelectedBlockType() const
 	return selectedBlockType;
 }
 
+void Player::setSelectedInventorySlot(int8_t slot)
+{
+    if (slot > 0) {
+        // Scroll down
+        selectedInventorySlot = (selectedInventorySlot + 1) % 9;
+    }
+    else if (slot < 0) {
+        // Scroll up
+        selectedInventorySlot = (selectedInventorySlot == 0) ? 8 : selectedInventorySlot - 1;
+    }
+}
+
 glm::vec3 Player::getLookDirection() const
 {
 	return glm::normalize(camera.getLookDirection());

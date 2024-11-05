@@ -75,6 +75,7 @@ int main()
 	World world(frustum);
 	Player player(camera, world);
 	glfwSetWindowUserPointer(window, &player);
+	glfwSetScrollCallback(window, main::scroll_callback);
 	glfwSetMouseButtonCallback(window, main::mouseButtonCallback);
 
 	main::setupRenderingState();
@@ -82,7 +83,7 @@ int main()
 	main::initializeImGui(window);
 
 	LoadingScreen loadingScreen(SCR_WIDTH, SCR_HEIGHT);
-	loadingScreen.display(window, world, frustum, camera.getPosition());
+	//loadingScreen.display(window, world, frustum, camera.getPosition());
 
 	glm::vec3 spawnPosition = camera.getPosition();
 	spawnPosition.y = world.getTerrainHeightAt(spawnPosition.x, spawnPosition.z);
@@ -124,7 +125,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	frustum.update(projection * view);
 	glm::vec3 playerPosition = camera.getPosition();
 	world.updatePlayerPosition(playerPosition, frustum);
-	world.processChunkLoadQueue(1, 50);
+	world.processChunkLoadQueue(1, 80);
 
 	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
 	player.update(deltaTime);
@@ -178,8 +179,17 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	// Render Skybox
 	main::renderSkybox(skybox, view, projection, camera, player);
 
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+
+	main::renderInventoryHotbar(player, player.getSelectedInventorySlot());
+
 	// ImGui
 	if (isGUIEnabled) main::renderImGui(window, playerPosition, player, world, frustum, skybox);
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void main::cleanup(shader& mainShader, shader& meshingShader, Crosshair& crosshair, shader& waterShader)
@@ -292,13 +302,51 @@ void main::initializeImGui(GLFWwindow* window) {
 	ImGui::StyleColorsDark();
 }
 
+void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
+{
+	GLint windowWidth, windowHeight;
+	glfwGetWindowSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
+
+	GLfloat hotbarWidth = 550;
+	GLfloat hotbarHeight = 70;
+	GLfloat hotbarX = (windowWidth - hotbarWidth) / 2;
+	GLfloat hotbarY = windowHeight - hotbarHeight;
+
+	ImGui::SetNextWindowPos(ImVec2(hotbarX, hotbarY), ImGuiCond_Always);
+	ImGui::SetNextWindowSize(ImVec2(hotbarWidth, hotbarHeight), ImGuiCond_Always);
+
+	ImGui::Begin("InventoryHotbar", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground);
+
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(1, 1));
+
+	for (uint8_t i = 0; i < 9; i++)
+	{
+		if (i == selectedSlot)
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.8f, 0.4f, 0.5f));
+		else
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.4f));
+
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 2.0f);
+		ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+
+		ImGui::Button(("##slot" + std::to_string(i)).c_str(), ImVec2(50, 50));
+
+		ImGui::PopStyleColor(4);
+		ImGui::PopStyleVar();
+
+		if (i < 8)
+			ImGui::SameLine();
+	}
+
+	ImGui::PopStyleVar();
+	ImGui::End();
+}
+
 void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Player& player, World& world, Frustum& frustum, SkyboxRenderer& skyboxRenderer) {
 	glDisable(GL_DEPTH_TEST);
-
-	// Start ImGui frame
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
 
 	ImGui::Begin("Menu");
 
@@ -427,10 +475,6 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 
 	ImGui::End();
 
-	// Render ImGui
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -438,6 +482,20 @@ void main::cleanupImGui() {
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+}
+
+void main::scroll_callback(GLFWwindow* window, GLdouble xoffset, GLdouble yoffset)
+{
+	if (isGUIEnabled) {
+		return;
+	}
+
+	Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
+
+	if (player) {
+		int8_t direction = (yoffset > 0) ? -1 : 1;
+		player->setSelectedInventorySlot(direction);
+	}
 }
 
 void main::mouse_callback(GLFWwindow* window, GLdouble xposIn, GLdouble yposIn)

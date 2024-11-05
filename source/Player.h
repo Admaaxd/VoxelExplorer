@@ -32,6 +32,9 @@ public:
 	void setPosition(const glm::vec3& newPosition) { position = newPosition; }
 	float getHeight() const { return size.y; }
 
+	GLint getSelectedInventorySlot() const { return selectedInventorySlot; }
+	void setSelectedInventorySlot(int8_t slot);
+
 private:
 	glm::vec3 getLookDirection() const;
 
@@ -55,4 +58,6 @@ private:
 	bool isOnGround;
 	GLfloat gravity;
 	bool flying = false;
+
+	uint8_t selectedInventorySlot = 0;
 };
