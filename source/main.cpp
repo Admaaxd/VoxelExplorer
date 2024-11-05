@@ -331,9 +331,9 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 
 		// Set slot color
 		if (i == selectedSlot)
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.8f, 0.4f, 0.5f)); // Highlighted color
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(1.0f, 0.8f, 0.4f, 0.5f));		// Highlighted color
 		else
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));   // Default color
+			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));		// Default color
 
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.3f, 0.3f, 0.3f, 0.5f));
@@ -343,7 +343,6 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 		// Render the slot
 		ImGui::Button(("##slot" + std::to_string(i)).c_str(), ImVec2(50, 50));
 
-		// Get the position and size of the slot
 		ImVec2 slotPos = ImGui::GetItemRectMin();
 		ImVec2 slotSize = ImGui::GetItemRectSize();
 
@@ -358,7 +357,6 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 					slotPos.y + (slotSize.y - imageSize.y) / 2
 				);
 
-				// Draw the image directly using the draw list
 				draw_list->AddImage(
 					(void*)(intptr_t)textureID,
 					imagePos,
@@ -367,10 +365,8 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 			}
 		}
 
-		// Render stack count as an overlay using the draw list
 		if (slot.stackSize > 1)
 		{
-			// Position the text in the bottom-right corner
 			ImVec2 textSize = ImGui::CalcTextSize(std::to_string(slot.stackSize).c_str());
 			ImVec2 textPos = ImVec2(
 				slotPos.x + slotSize.x - textSize.x - 5,
@@ -379,7 +375,7 @@ void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 
 			draw_list->AddText(
 				textPos,
-				IM_COL32(255, 255, 255, 255), // White color
+				IM_COL32(255, 255, 255, 255),
 				std::to_string(slot.stackSize).c_str()
 			);
 		}

@@ -236,6 +236,14 @@ void Player::placeBlock() {
     glm::vec3 hitPos, hitNormal;
     GLint blockType;
     if (rayCast(hitPos, hitNormal, blockType)) {
+
+        const InventorySlot& selectedSlot = inventory[selectedInventorySlot];
+
+        if (selectedSlot.blockType == -1 || selectedSlot.stackSize <= 0) {
+            return;
+        }
+
+        GLint blockToPlace = selectedSlot.blockType;
         glm::vec3 placePos = hitPos + hitNormal;
         glm::vec3 blockToReplace = hitPos;
 
@@ -252,21 +260,33 @@ void Player::placeBlock() {
         if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
             GLint blockType = chunk->getBlockType(localX, localY, localZ);
 
-            if (selectedBlockType == FLOWER1 || selectedBlockType == FLOWER2 || selectedBlockType == FLOWER3 || selectedBlockType == FLOWER4 || selectedBlockType == FLOWER5
-                || selectedBlockType == GRASS1 || selectedBlockType == GRASS2 || selectedBlockType == GRASS3) {
+            if (blockToPlace == FLOWER1 || blockToPlace == FLOWER2 || blockToPlace == FLOWER3 ||
+                blockToPlace == FLOWER4 || blockToPlace == FLOWER5 || blockToPlace == GRASS1 ||
+                blockToPlace == GRASS2 || blockToPlace == GRASS3) {
                 if (blockType != DIRT && blockType != GRASS_BLOCK) {
-                    return; // Flower only can be placed on dirt or grass block
+                    return; // Only place on dirt or grass block
                 }
             }
 
-            if ((blockType == WATER || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) && !isBlockInsidePlayer(placePos)) {
-                chunk->setBlockType(localX, localY, localZ, selectedBlockType);
+            if ((blockType == WATER || blockType == GRASS1 ||
+                blockType == GRASS2 || blockType == GRASS3) && !isBlockInsidePlayer(placePos)) {
+                chunk->setBlockType(localX, localY, localZ, blockToPlace);
+
+                inventory[selectedInventorySlot].stackSize--;
+                if (inventory[selectedInventorySlot].stackSize <= 0) {
+                    inventory[selectedInventorySlot].blockType = -1;
+                }
                 return;
             }
         }
 
         if (!isBlockInsidePlayer(placePos)) {
-            world.setBlock(placePos.x, placePos.y, placePos.z, selectedBlockType);
+            world.setBlock(placePos.x, placePos.y, placePos.z, blockToPlace);
+
+            inventory[selectedInventorySlot].stackSize--;
+            if (inventory[selectedInventorySlot].stackSize <= 0) {
+                inventory[selectedInventorySlot].blockType = -1;
+            }
         }
     }
 }
@@ -519,3 +539,44 @@ bool Player::isInUnderwater() const {
     }
     return true;
 }
+
+/* //Old implementation of placeBlock though Imgui
+void Player::placeBlock() {
+    glm::vec3 hitPos, hitNormal;
+    GLint blockType;
+    if (rayCast(hitPos, hitNormal, blockType)) {
+        glm::vec3 placePos = hitPos + hitNormal;
+        glm::vec3 blockToReplace = hitPos;
+
+        int16_t chunkX = (blockToReplace.x >= 0) ? static_cast<int16_t>(blockToReplace.x / CHUNK_SIZE) : static_cast<int16_t>((blockToReplace.x + 1) / CHUNK_SIZE) - 1;
+        int16_t chunkZ = (blockToReplace.z >= 0) ? static_cast<int16_t>(blockToReplace.z / CHUNK_SIZE) : static_cast<int16_t>((blockToReplace.z + 1) / CHUNK_SIZE) - 1;
+
+        int16_t localX = static_cast<int16_t>(blockToReplace.x) - (chunkX * CHUNK_SIZE);
+        int16_t localY = static_cast<int16_t>(std::floor(blockToReplace.y));
+        int16_t localZ = static_cast<int16_t>(blockToReplace.z) - (chunkZ * CHUNK_SIZE);
+
+        localX = (localX + CHUNK_SIZE) % CHUNK_SIZE;
+        localZ = (localZ + CHUNK_SIZE) % CHUNK_SIZE;
+
+        if (Chunk* chunk = world.getChunk(chunkX, chunkZ)) {
+            GLint blockType = chunk->getBlockType(localX, localY, localZ);
+
+            if (selectedBlockType == FLOWER1 || selectedBlockType == FLOWER2 || selectedBlockType == FLOWER3 || selectedBlockType == FLOWER4 || selectedBlockType == FLOWER5
+                || selectedBlockType == GRASS1 || selectedBlockType == GRASS2 || selectedBlockType == GRASS3) {
+                if (blockType != DIRT && blockType != GRASS_BLOCK) {
+                    return; // Flower only can be placed on dirt or grass block
+                }
+            }
+
+            if ((blockType == WATER || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) && !isBlockInsidePlayer(placePos)) {
+                chunk->setBlockType(localX, localY, localZ, selectedBlockType);
+                return;
+            }
+        }
+
+        if (!isBlockInsidePlayer(placePos)) {
+            world.setBlock(placePos.x, placePos.y, placePos.z, selectedBlockType);
+        }
+    }
+}
+*/
