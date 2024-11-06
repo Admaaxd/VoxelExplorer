@@ -2,11 +2,13 @@
 #include "World.h"
 
 Chunk::Chunk(GLint x, GLint z, TextureManager& textureManager, World* world)
-    : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world)
+    : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world), 
+      forestBiome(BiomeTypes::Forest), desertBiome(BiomeTypes::Desert)
 {
     minBounds = glm::vec3(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
     maxBounds = glm::vec3((chunkX + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunkZ + 1) * CHUNK_SIZE);
 
+    determineBiomeType(x, z);
     setupChunk();
     calculateBounds();
 }
@@ -24,9 +26,29 @@ Chunk::~Chunk()
 
 void Chunk::setupChunk()
 {
-    initializeNoise();
     generateChunk();
     generateMesh(blockTypes);
+}
+
+Biomes Chunk::determineBiomeType(GLint x, GLint z)
+{
+    biomeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    biomeNoise.SetFrequency(0.001f);
+
+    caveNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+    caveNoise.SetFractalOctaves(5);
+    caveNoise.SetFrequency(0.016f);
+
+    GLfloat noiseValue = biomeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+
+    if (noiseValue < -0.2f)
+    {
+        return Biomes(BiomeTypes::Desert);
+    }
+    else
+    {
+        return Biomes(BiomeTypes::Forest);
+    }
 }
 
 void Chunk::generateChunk()
@@ -43,20 +65,30 @@ void Chunk::generateChunk()
             GLfloat globalX = static_cast<GLfloat>(chunkX * CHUNK_SIZE + x);
             GLfloat globalZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
 
-            uint8_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
+            GLfloat biomeNoiseValue = biomeNoise.GetNoise(static_cast<GLfloat>(globalX), static_cast<GLfloat>(globalZ));
+
+            GLfloat biomeValue = (biomeNoiseValue + 1.0f) / 2.0f;
+
+            GLfloat desertWeight = biomeValue;
+            GLfloat forestWeight = 1.0f - biomeValue;
+
+            GLfloat forestHeight = forestBiome.getTerrainHeightAt(globalX, globalZ);
+            GLfloat desertHeight = desertBiome.getTerrainHeightAt(globalX, globalZ);
+
+            GLfloat blendedHeight = forestHeight * forestWeight + desertHeight * desertWeight;
+            uint16_t terrainHeight = static_cast<uint16_t>(blendedHeight);
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
                 uint16_t index = getIndex(x, y, z);
 
-                // cave noise
-                GLfloat caveValue = caveNoise.GetNoise(globalX, static_cast<GLfloat>(y), globalZ);
+                GLfloat caveValue = caveNoise.GetNoise(static_cast<GLfloat>(globalX), static_cast<GLfloat>(y), static_cast<GLfloat>(globalZ));
+                GLfloat biomeCaveThreshold = (forestWeight * 0.85f) + (desertWeight * 0.5f);
+                bool isCave = (caveValue > biomeCaveThreshold) && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
 
-                bool isMainCave = caveValue > 0.35f && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
-
-                if (isMainCave)
+                if (isCave && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer))
                 {
-                    blockTypes[index] = -1; // Air block for caves and tunnels
+                    blockTypes[index] = -1;
                     continue;
                 }
 
@@ -64,114 +96,84 @@ void Chunk::generateChunk()
                 {
                     if (y <= WATERLEVEL)
                     {
-                        blockTypes[index] = WATER; // Water
+                        blockTypes[index] = WATER;
                     }
                     continue;
                 }
 
+                // Blend surface blocks
+                uint16_t forestSurfaceBlock = forestBiome.getSurfaceBlock();
+                uint16_t desertSurfaceBlock = desertBiome.getSurfaceBlock();
+
+                uint16_t blendedSurfaceBlock = (forestWeight > desertWeight) ? forestSurfaceBlock : desertSurfaceBlock;
+
+                // Blend subSubSurface blocks
+                uint16_t forestSubSurfaceBlock = forestBiome.getSubSurfaceBlock();
+                uint16_t desertSubSurfaceBlock = desertBiome.getSubSurfaceBlock();
+
+                uint16_t blendedSubSurfaceBlock = (forestWeight > desertWeight) ? forestSubSurfaceBlock : desertSubSurfaceBlock;
+
+                // Blend undergroundSurface blocks
+                uint16_t forestUndergroundSurfaceBlock = forestBiome.getUndergroundBlock();
+                uint16_t desertUndergroundSurfaceBlock = desertBiome.getUndergroundBlock();
+
+                uint16_t blendedUndergroundSurfaceBlock = (forestWeight > desertWeight) ? forestUndergroundSurfaceBlock : desertUndergroundSurfaceBlock;
+
                 if (y <= WATERLEVEL && y >= terrainHeight - 2)
                 {
-                    blockTypes[index] = SAND; // Sand near water
+                    blockTypes[index] = SAND;
                 }
                 else if (y == terrainHeight)
                 {
-                    blockTypes[index] = GRASS_BLOCK; // Grass top
+                    blockTypes[index] = blendedSurfaceBlock;
                 }
                 else if (y >= terrainHeight - 4)
                 {
-                    blockTypes[index] = DIRT; // Dirt layer
-                }
-                else if (y < terrainHeight - 4 && y > WATERLEVEL - 5)
-                {
-                    blockTypes[index] = STONE; // Stone layer
+                    blockTypes[index] = blendedSubSurfaceBlock;
                 }
                 else
                 {
-                    blockTypes[index] = STONE; // Stone layer
+                    blockTypes[index] = blendedUndergroundSurfaceBlock;
                 }
             }
-        }
-    }
 
-    // Generate trees
-    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
-    {
-        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
-        {
-            int16_t globalX = chunkX * CHUNK_SIZE + x;
-            int16_t globalZ = chunkZ * CHUNK_SIZE + z;
+            uint16_t indexBelow = getIndex(x, terrainHeight, z);
+            uint16_t indexAbove = getIndex(x, terrainHeight + 1, z);
 
-            GLfloat treeValue = treeNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
-            if (treeValue > 0.95f)
+            if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1 && blockTypes[indexBelow] == GRASS_BLOCK)
             {
-                int16_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
+                GLfloat totalWeight = forestWeight + desertWeight;
+                GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX * totalWeight;
 
-                if (terrainHeight > WATERLEVEL + 1 && terrainHeight < CHUNK_HEIGHT - 15)
+                if (randomValue < forestWeight)
                 {
-                    int16_t index = getIndex(x, terrainHeight, z);
-                    if (blockTypes[index] == GRASS_BLOCK)
+                    // Forest
+                    if (forestBiome.shouldPlaceTree(globalX, globalZ))
                     {
+                        // Generate trees
                         uint8_t randomTreeType = rand() % 3;
-
                         if (randomTreeType == 0)
-                        {
                             Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
-                        }
                         else if (randomTreeType == 1)
-                        {
                             Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
-                        }
                         else
-                        {
                             Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
+                    }
+                    else if (forestBiome.shouldPlaceGrass(globalX, globalZ))
+                    {
+                        uint8_t grassType = forestBiome.getRandomGrassType();
+                        if (grassType != -1)
+                        {
+                            blockTypes[indexAbove] = grassType;
                         }
                     }
-                }
-            }
-        }
-    }
-
-    // Plants
-    for (uint8_t x = 0; x < CHUNK_SIZE; ++x)
-    {
-        for (uint8_t z = 0; z < CHUNK_SIZE; ++z)
-        {
-            int16_t globalX = chunkX * CHUNK_SIZE + x;
-            int16_t globalZ = chunkZ * CHUNK_SIZE + z;
-
-            uint8_t terrainHeight = getTerrainHeightAt(globalX, globalZ);
-
-            int16_t indexBelow = getIndex(x, terrainHeight, z);
-            int16_t indexAbove = getIndex(x, terrainHeight + 1, z);
-
-            if (blockTypes[indexBelow] == 2 && blockTypes[indexAbove] == -1)
-            {
-                GLfloat grassChance = grassNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
-                GLfloat flowerChance = flowerNoise.GetNoise((GLfloat)globalX, (GLfloat)globalZ);
-
-                if (grassChance > 0.5f && grassChance > flowerChance)
-                {
-                    // Place grass
-                    int16_t grassType;
-                    GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
-                    if (randomValue < 0.33f)
-                        grassType = GRASS1; // Grass 1
-                    else if (randomValue < 0.67f)
-                        grassType = GRASS2; // Grass 2
-                    else
-                        grassType = GRASS3; // Grass 3
-
-                    blockTypes[indexAbove] = grassType;
-                }
-                else if (flowerChance > 0.87f)
-                {
-                    int8_t flowerType = rand() % 5;
-                    switch (flowerType) {
-                        case 0: blockTypes[indexAbove] = FLOWER1; break;
-                        case 1: blockTypes[indexAbove] = FLOWER2; break;
-                        case 2: blockTypes[indexAbove] = FLOWER3; break;
-                        case 3: blockTypes[indexAbove] = FLOWER4; break;
-                        case 4: blockTypes[indexAbove] = FLOWER5; break;
+                    else if (forestBiome.shouldPlaceFlower(globalX, globalZ))
+                    {
+                        uint8_t flowerType = forestBiome.getRandomFlowerType();
+                        if (flowerType != -1)
+                        {
+                            blockTypes[indexAbove] = flowerType;
+                        }
                     }
                 }
             }
@@ -191,66 +193,20 @@ void Chunk::generateChunk()
     isInitialized = true;
 }
 
-void Chunk::initializeNoise()
+GLint Chunk::getTerrainHeightAt(GLint x, GLint z) const
 {
-    // Base noise
-    baseNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    baseNoise.SetFrequency(0.005f);
+    GLfloat biomeNoiseValue = biomeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+    GLfloat biomeValue = (biomeNoiseValue + 1.0f) / 2.0f;
+    GLfloat desertWeight = biomeValue;
+    GLfloat forestWeight = 1.0f - biomeValue;
 
-    // Elevation noise (general hills and plains)
-    elevationNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    elevationNoise.SetFrequency(0.001f);
-    elevationNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    elevationNoise.SetFractalOctaves(7);
+    GLfloat forestHeight = forestBiome.getTerrainHeightAt(x, z);
+    GLfloat desertHeight = desertBiome.getTerrainHeightAt(x, z);
 
-    // Ridge noise (sharp peaks and valleys)
-    ridgeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2S);
-    ridgeNoise.SetFrequency(0.0008f);
-    ridgeNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    ridgeNoise.SetFractalOctaves(5);
+    // Blend heights
+    GLfloat blendedHeight = forestHeight * forestWeight + desertHeight * desertWeight;
 
-    // Mountain noise
-    mountainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    mountainNoise.SetFrequency(0.0001f);
-    mountainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    mountainNoise.SetFractalOctaves(7);
-
-    // Detail noise
-    detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    detailNoise.SetFrequency(0.03f);
-    detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    detailNoise.SetFractalOctaves(10);
-
-    // Cave noise
-    caveNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-    caveNoise.SetFrequency(0.009f);
-    caveNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
-    caveNoise.SetFractalOctaves(4);
-
-    // Tree noise
-    treeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    treeNoise.SetFrequency(0.2f);
-
-    // Grass noise
-    grassNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    grassNoise.SetSeed(10);
-    grassNoise.SetFrequency(0.9f);
-
-    // Flower noise
-    flowerNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    flowerNoise.SetSeed(10 + 1);
-    flowerNoise.SetFrequency(0.9f);
-}
-
-GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
-{
-    GLfloat finalHeight = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z))
-        + elevationNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f
-        + ridgeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.4f
-        + mountainNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f
-        + detailNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.2f;
-
-    return static_cast<int16_t>((finalHeight + 1.0f) * 0.5f * (CHUNK_HEIGHT));
+    return static_cast<int16_t>(blendedHeight);
 }
 
 void Chunk::placeBlockIfInChunk(GLint globalX, GLint y, GLint globalZ, GLint blockType)

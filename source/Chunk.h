@@ -1,13 +1,12 @@
 #pragma once
 
 #include "Block.h"
-#include "FastNoiseLite.h"
 #include "TextureManager.h"
 #include "Frustum.h"
 #include "Structure.h"
 #include "shader.h"
 #include "Camera.h"
-#include "BlockTypes.h"
+#include "Biomes.h"
 
 class World;
 
@@ -31,7 +30,7 @@ public:
 	GLint getBlockType(GLint x, GLint y, GLint z) const;
 	const std::vector<GLint>& getBlockTypes() const;
 	void setBlockType(GLint x, GLint y, GLint z, int8_t type);
-	GLint getTerrainHeightAt(GLint x, GLint z);
+	GLint getTerrainHeightAt(GLint x, GLint z) const;
 
 	bool isInFrustum(const Frustum& frustum) const;
 	glm::vec3 getMinBounds() const { return minBounds; }
@@ -61,8 +60,7 @@ private:
 
 	void addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
 
-	FastNoiseLite baseNoise, elevationNoise, caveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, treeHeightNoise, grassNoise, flowerNoise;
-	void initializeNoise();
+	Biomes determineBiomeType(GLint x, GLint z);
 
 	GLuint textureID;
 	FastNoiseLite noiseGenerator;
@@ -81,4 +79,6 @@ private:
 	std::vector<std::vector<std::vector<GLint>>> chunkData;
 	TextureManager& textureManager;
 
+	FastNoiseLite biomeNoise, caveNoise;
+	Biomes forestBiome, desertBiome;
 };
