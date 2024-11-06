@@ -222,7 +222,7 @@ void Player::removeBlock()
         {
             GLint blockAboveType = chunk->getBlockType(localX, localY, localZ);
             if (blockAboveType == FLOWER1 || blockAboveType == FLOWER2 || blockAboveType == FLOWER3 || blockAboveType == FLOWER4 || blockAboveType == FLOWER5
-                || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3) 
+                || blockAboveType == GRASS1 || blockAboveType == GRASS2 || blockAboveType == GRASS3 || blockAboveType == DEADBUSH)
             {
                 chunk->setBlockType(localX, localY, localZ, -1);
             }
@@ -268,8 +268,17 @@ void Player::placeBlock() {
                 }
             }
 
+            if (blockToPlace == DEADBUSH)
+            {
+                if (blockType != SAND)
+                {
+                    return;
+                }
+            }
+
             if ((blockType == WATER || blockType == GRASS1 ||
-                blockType == GRASS2 || blockType == GRASS3) && !isBlockInsidePlayer(placePos)) {
+                blockType == GRASS2 || blockType == GRASS3 || blockType == DEADBUSH) 
+                && !isBlockInsidePlayer(placePos)) {
                 chunk->setBlockType(localX, localY, localZ, blockToPlace);
 
                 inventory[selectedInventorySlot].stackSize--;
@@ -461,7 +470,7 @@ bool Player::checkCollision(const glm::vec3& position) {
                     GLint blockType = chunk->getBlockType(localX, localY, localZ);
                     // Ignore non-solid blocks
                     if (blockType == -1 || blockType == WATER || blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5
-                        || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3) {
+                        || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3 || blockType == DEADBUSH) {
                         continue; // No collision
                     }
                     // Collision detected

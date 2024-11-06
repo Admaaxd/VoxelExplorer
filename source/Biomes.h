@@ -16,6 +16,7 @@ public:
     bool shouldPlaceTree(GLint x, GLint z) const;
     bool shouldPlaceGrass(GLint x, GLint z) const;
     bool shouldPlaceFlower(GLint x, GLint z) const;
+    bool shouldPlaceDeadBush(int x, int z) const;
 
     GLint getRandomGrassType() const;
     GLint getRandomFlowerType() const;

@@ -84,7 +84,7 @@ int main()
 	main::initializeImGui(window);
 
 	LoadingScreen loadingScreen(SCR_WIDTH, SCR_HEIGHT);
-	//loadingScreen.display(window, world, frustum, camera.getPosition());
+	loadingScreen.display(window, world, frustum, camera.getPosition());
 
 	glm::vec3 spawnPosition = camera.getPosition();
 	spawnPosition.y = world.getTerrainHeightAt(spawnPosition.x, spawnPosition.z);
@@ -126,7 +126,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	frustum.update(projection * view);
 	glm::vec3 playerPosition = camera.getPosition();
 	world.updatePlayerPosition(playerPosition, frustum);
-	world.processChunkLoadQueue(1, 50);
+	world.processChunkLoadQueue(1, 40);
 
 	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
 	player.update(deltaTime);
@@ -404,7 +404,7 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	ImGui::Text("Select Block Type:");
 	static const char* blockTypeNames[] = {
 		"Dirt", "Stone", "Grass", "Sand", "Water", "Oak log", "Oak leaf", "Gravel", "Cobblestone", "Glass" 
-		,"Flower1", "Grass1", "Grass2", "Grass3", "Flower2", "Flower3", "Flower4", "Flower5", "Oak leaf orange", "Oak leaf yellow"
+		,"Flower1", "Grass1", "Grass2", "Grass3", "Flower2", "Flower3", "Flower4", "Flower5", "Oak leaf orange", "Oak leaf yellow", "Dead bush"
 	};
 
 	GLint selectedBlockType = player.getSelectedBlockType();

@@ -140,40 +140,50 @@ void Chunk::generateChunk()
             uint16_t indexBelow = getIndex(x, terrainHeight, z);
             uint16_t indexAbove = getIndex(x, terrainHeight + 1, z);
 
-            if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1 && blockTypes[indexBelow] == GRASS_BLOCK)
+            if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1)
             {
                 GLfloat totalWeight = forestWeight + desertWeight;
                 GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX * totalWeight;
 
                 if (randomValue < forestWeight)
                 {
-                    // Forest
-                    if (forestBiome.shouldPlaceTree(globalX, globalZ))
+                    if (blockTypes[indexBelow] == GRASS_BLOCK)
                     {
-                        // Generate trees
-                        uint8_t randomTreeType = rand() % 3;
-                        if (randomTreeType == 0)
-                            Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
-                        else if (randomTreeType == 1)
-                            Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
-                        else
-                            Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
-                    }
-                    else if (forestBiome.shouldPlaceGrass(globalX, globalZ))
-                    {
-                        uint8_t grassType = forestBiome.getRandomGrassType();
-                        if (grassType != -1)
+                        // Forest
+                        if (forestBiome.shouldPlaceTree(globalX, globalZ))
                         {
-                            blockTypes[indexAbove] = grassType;
+                            // Generate trees
+                            uint8_t randomTreeType = rand() % 3;
+                            if (randomTreeType == 0)
+                                Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                            else if (randomTreeType == 1)
+                                Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
+                            else
+                                Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
+                        }
+                        else if (forestBiome.shouldPlaceGrass(globalX, globalZ))
+                        {
+                            uint8_t grassType = forestBiome.getRandomGrassType();
+                            if (grassType != -1)
+                            {
+                                blockTypes[indexAbove] = grassType;
+                            }
+                        }
+                        else if (forestBiome.shouldPlaceFlower(globalX, globalZ))
+                        {
+                            uint8_t flowerType = forestBiome.getRandomFlowerType();
+                            if (flowerType != -1)
+                            {
+                                blockTypes[indexAbove] = flowerType;
+                            }
                         }
                     }
-                    else if (forestBiome.shouldPlaceFlower(globalX, globalZ))
+                }
+                else if (randomValue < desertWeight && desertWeight > 0.6f)
+                {
+                    if (blockTypes[indexBelow] == SAND && desertBiome.shouldPlaceDeadBush(globalX, globalZ))
                     {
-                        uint8_t flowerType = forestBiome.getRandomFlowerType();
-                        if (flowerType != -1)
-                        {
-                            blockTypes[indexAbove] = flowerType;
-                        }
+                        blockTypes[indexAbove] = DEADBUSH;
                     }
                 }
             }
@@ -230,7 +240,8 @@ inline GLint Chunk::getIndex(GLint x, GLint y, GLint z) const
 inline bool Chunk::isTransparent(GLint blockType)
 {
     return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == OAK_LEAF_ORANGE || blockType == OAK_LEAF_YELLOW || blockType == GLASS ||
-        blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3;
+        blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || 
+        blockType == GRASS3 || blockType == DEADBUSH;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -557,7 +568,7 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                 if (blockTypes[index] == -1) continue;
 
                 if (blockTypes[index] == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 
-                    || blockTypes[index] == GRASS1 || blockTypes[index] == GRASS2 || blockTypes[index] == GRASS3)
+                    || blockTypes[index] == GRASS1 || blockTypes[index] == GRASS2 || blockTypes[index] == GRASS3 || blockTypes[index] == DEADBUSH)
                 {
                     // Add grass plant mesh
                     addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
@@ -655,6 +666,8 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
 
     case OAK_LEAF_ORANGE: return 20;
     case OAK_LEAF_YELLOW: return 21;
+
+    case DEADBUSH: return 22;
     
     default: return DIRT;
     }

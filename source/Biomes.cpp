@@ -62,6 +62,8 @@ void Biomes::initializeNoise() {
         baseNoise.SetFrequency(0.0011f);
         baseNoise.SetFractalOctaves(2);
 
+        flowerNoise.SetSeed(11);
+        flowerNoise.SetFrequency(0.9f);
         break;
     }
 }
@@ -104,6 +106,14 @@ bool Biomes::shouldPlaceFlower(GLint x, GLint z) const {
     GLfloat flowerChance = flowerNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
     return biomeTypes == BiomeTypes::Forest && flowerChance > 0.70f;
+}
+
+bool Biomes::shouldPlaceDeadBush(int x, int z) const {
+    if (biomeTypes == BiomeTypes::Desert) {
+        GLfloat deadBushChance = flowerNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+        return deadBushChance > 0.90f;
+    }
+    return false;
 }
 
 GLint Biomes::getRandomGrassType() const {

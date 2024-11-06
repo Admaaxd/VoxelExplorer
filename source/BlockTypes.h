@@ -20,7 +20,8 @@ enum BlockType {
 	FLOWER4,
 	FLOWER5,
 	OAK_LEAF_ORANGE,
-	OAK_LEAF_YELLOW
+	OAK_LEAF_YELLOW,
+	DEADBUSH
 };
 
 enum FaceType {
