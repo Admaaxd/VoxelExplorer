@@ -30,5 +30,7 @@ private:
 
     BiomeTypes biomeTypes;
 
-    FastNoiseLite baseNoise, elevationNoise, caveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, grassNoise, flowerNoise;
+    FastNoiseLite baseNoise, elevationNoise, caveNoise, ridgeNoise, detailNoise, mountainNoise, treeNoise, grassNoise, flowerNoise, cliffNoise;
+
+    GLfloat cliffAmplitude;
 };

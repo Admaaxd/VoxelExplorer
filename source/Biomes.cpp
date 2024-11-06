@@ -21,6 +21,10 @@ void Biomes::initializeNoise() {
     mountainNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     mountainNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
 
+    // Cliff noise
+    cliffNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
+    cliffNoise.SetFractalType(FastNoiseLite::FractalType_Ridged);
+
     // Detail noise
     detailNoise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
     detailNoise.SetFractalType(FastNoiseLite::FractalType_FBm);
@@ -42,7 +46,7 @@ void Biomes::initializeNoise() {
         ridgeNoise.SetFrequency(0.0008f);
         ridgeNoise.SetFractalOctaves(5);
 
-        mountainNoise.SetFrequency(0.0001f);
+        mountainNoise.SetFrequency(0.001f);
         mountainNoise.SetFractalOctaves(7);
         
         detailNoise.SetFrequency(0.03f);
@@ -62,6 +66,10 @@ void Biomes::initializeNoise() {
         baseNoise.SetFrequency(0.0011f);
         baseNoise.SetFractalOctaves(2);
 
+        cliffNoise.SetFrequency(0.005f);
+        cliffNoise.SetFractalOctaves(3);
+        cliffAmplitude = 0.5f;
+
         flowerNoise.SetSeed(11);
         flowerNoise.SetFrequency(0.9f);
         break;
@@ -78,6 +86,9 @@ GLint Biomes::getTerrainHeightAt(GLint x, GLint z) const {
 
     case BiomeTypes::Desert:
         height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f;
+        GLfloat cliffValue = cliffNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+
+        height += fabs(cliffValue) * cliffAmplitude;
         break;
 
     }
