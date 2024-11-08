@@ -7,12 +7,26 @@
 #include "shader.h"
 #include "Camera.h"
 #include "Biomes.h"
+#include <numeric>
 
 class World;
 
 constexpr uint8_t CHUNK_SIZE = 16;
 constexpr uint8_t CHUNK_HEIGHT = 128;
 constexpr uint8_t WATERLEVEL = 62;
+
+struct BiomeData {
+	GLfloat minThreshold, maxThreshold;
+	BiomeTypes type;
+	GLfloat baseFrequency;
+	uint16_t surfaceBlock;
+	uint16_t subSurfaceBlock;
+	uint16_t undergroundBlock;
+	GLfloat caveThreshold;
+	GLfloat edge0, edge1, edge2, edge3;
+};
+
+extern std::vector<BiomeData> biomes;
 
 class Chunk
 {
@@ -30,7 +44,7 @@ public:
 	GLint getBlockType(GLint x, GLint y, GLint z) const;
 	const std::vector<GLint>& getBlockTypes() const;
 	void setBlockType(GLint x, GLint y, GLint z, int8_t type);
-	GLint getTerrainHeightAt(GLint x, GLint z) const;
+	GLint getTerrainHeightAt(GLint x, GLint z);
 
 	bool isInFrustum(const Frustum& frustum) const;
 	glm::vec3 getMinBounds() const { return minBounds; }
@@ -61,7 +75,8 @@ private:
 	void addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
 
 	Biomes determineBiomeType(GLint x, GLint z);
-
+	const BiomeData* selectBiome(GLfloat noiseValue);
+	const Biomes* getBiomeInstance(BiomeTypes type) const;
 	GLfloat smoothstep(GLfloat edge0, GLfloat edge1, GLfloat x);
 
 	GLuint textureID;
@@ -83,4 +98,16 @@ private:
 
 	FastNoiseLite biomeNoise, caveNoise;
 	Biomes forestBiome, desertBiome, plainsBiome;
+
+	std::vector<BiomeData> biomes = {
+		{0.0f, 0.33f, BiomeTypes::Desert, 0.0011f, SAND, STONE, STONE, 0.5f, 0.2f, 0.4f, 0.0f, 0.0f},
+		{0.33f, 0.67f, BiomeTypes::Plains, 0.0003f, GRASS_BLOCK, DIRT, STONE, 0.98f, 0.3f, 0.4f, 0.6f, 0.7f},
+		{0.67f, 1.0f, BiomeTypes::Forest, 0.005f, GRASS_BLOCK, DIRT, STONE, 0.85f, 0.6f, 0.8f, 0.0f, 0.0f}
+	};
+
+	std::unordered_map<BiomeTypes, Biomes*> biomeInstances = {
+		{BiomeTypes::Desert, &desertBiome},
+		{BiomeTypes::Plains, &plainsBiome},
+		{BiomeTypes::Forest, &forestBiome}
+	};
 };

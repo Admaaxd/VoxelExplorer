@@ -55,9 +55,32 @@ Biomes Chunk::determineBiomeType(GLint x, GLint z)
     }
 }
 
+const BiomeData* Chunk::selectBiome(GLfloat noiseValue) {
+    for (const auto& biome : biomes) {
+        if (noiseValue >= biome.minThreshold && noiseValue < biome.maxThreshold) {
+            return &biome;
+        }
+    }
+    return nullptr;
+}
+
+const Biomes* Chunk::getBiomeInstance(BiomeTypes type) const {
+    switch (type) {
+    case BiomeTypes::Forest:
+        return &forestBiome;
+    case BiomeTypes::Desert:
+        return &desertBiome;
+    case BiomeTypes::Plains:
+        return &plainsBiome;
+    
+    default:
+        return nullptr;
+    }
+}
+
 GLfloat Chunk::smoothstep(GLfloat edge0, GLfloat edge1, GLfloat x) {
     x = (x - edge0) / (edge1 - edge0);
-    x = std::max(0.0f, std::min(1.0f, x));
+    x = std::clamp(x, 0.0f, 1.0f);
     return x * x * (3 - 2 * x);
 }
 
@@ -76,36 +99,61 @@ void Chunk::generateChunk()
             GLfloat globalZ = static_cast<GLfloat>(chunkZ * CHUNK_SIZE + z);
 
             GLfloat biomeNoiseValue = biomeNoise.GetNoise(static_cast<GLfloat>(globalX), static_cast<GLfloat>(globalZ));
-
             GLfloat biomeValue = (biomeNoiseValue + 1.0f) / 2.0f;
 
-            GLfloat desertWeight = 1.0f - smoothstep(0.3f, 0.4f, biomeValue);
-            GLfloat plainsWeight = smoothstep(0.3f, 0.4f, biomeValue) * (1.0f - smoothstep(0.6f, 0.7f, biomeValue));
-            GLfloat forestWeight = smoothstep(0.6f, 0.7f, biomeValue);
+            std::vector<GLfloat> biomeWeights(biomes.size(), 0.0f);
 
-            GLfloat totalWeight = desertWeight + plainsWeight + forestWeight;
-            if (totalWeight > 0.0f) {
-                desertWeight /= totalWeight;
-                plainsWeight /= totalWeight;
-                forestWeight /= totalWeight;
+            for (size_t i = 0; i < biomes.size(); ++i) {
+                const BiomeData& biome = biomes[i];
+                GLfloat weight = 0.0f;
+
+                if (biome.type == BiomeTypes::Desert) {
+                    weight = 1.0f - smoothstep(biome.edge0, biome.edge1, biomeValue);
+                }
+                else if (biome.type == BiomeTypes::Plains) {
+                    weight = smoothstep(biome.edge0, biome.edge1, biomeValue) * (1.0f - smoothstep(biome.edge2, biome.edge3, biomeValue));
+                }
+                else if (biome.type == BiomeTypes::Forest) {
+                    weight = smoothstep(biome.edge0, biome.edge1, biomeValue);
+                }
+                biomeWeights[i] = weight;
             }
 
-            GLfloat forestHeight = forestBiome.getTerrainHeightAt(globalX, globalZ);
-            GLfloat desertHeight = desertBiome.getTerrainHeightAt(globalX, globalZ);
-            GLfloat plainsHeight = plainsBiome.getTerrainHeightAt(globalX, globalZ);
+            GLfloat totalWeight = std::accumulate(biomeWeights.begin(), biomeWeights.end(), 0.0f);
+            if (totalWeight > 0.0f) {
+                for (GLfloat& weight : biomeWeights) {
+                    weight /= totalWeight;
+                }
+            }
 
-            GLfloat blendedHeight = forestHeight * forestWeight + desertHeight * desertWeight + plainsHeight * plainsWeight;
+            // Blend terrain heights
+            GLfloat blendedHeight = 0.0f;
+            for (size_t i = 0; i < biomes.size(); ++i) {
+                if (biomeWeights[i] > 0.0f) {
+                    const BiomeData& biome = biomes[i];
+                    Biomes* biomeInstance = biomeInstances[biome.type];
+                    GLfloat height = biomeInstance->getTerrainHeightAt(globalX, globalZ);
+                    blendedHeight += height * biomeWeights[i];
+                }
+            }
             uint16_t terrainHeight = static_cast<uint16_t>(blendedHeight);
+
+            size_t maxWeightBiomeIndex = std::distance(biomeWeights.begin(), std::max_element(biomeWeights.begin(), biomeWeights.end()));
+            const BiomeData& primaryBiome = biomes[maxWeightBiomeIndex];
+
+            GLfloat biomeCaveThreshold = 0.0f;
+            for (size_t i = 0; i < biomes.size(); ++i) {
+                biomeCaveThreshold += biomeWeights[i] * biomes[i].caveThreshold;
+            }
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
             {
                 uint16_t index = getIndex(x, y, z);
 
                 GLfloat caveValue = caveNoise.GetNoise(static_cast<GLfloat>(globalX), static_cast<GLfloat>(y), static_cast<GLfloat>(globalZ));
-                GLfloat biomeCaveThreshold = (forestWeight * 0.85f) + (plainsWeight * 0.98f) + (desertWeight * 0.5f);
                 bool isCave = (caveValue > biomeCaveThreshold) && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
 
-                if (isCave && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer))
+                if (isCave)
                 {
                     blockTypes[index] = -1;
                     continue;
@@ -120,53 +168,18 @@ void Chunk::generateChunk()
                     continue;
                 }
 
-                // Blend surface blocks
-                uint16_t forestSurfaceBlock = forestBiome.getSurfaceBlock();
-                uint16_t desertSurfaceBlock = desertBiome.getSurfaceBlock();
-                uint16_t plainsSurfaceBlock = plainsBiome.getSurfaceBlock();
-
-                uint16_t blendedSurfaceBlock;
-                if (forestWeight >= desertWeight && forestWeight >= plainsWeight) {
-                    blendedSurfaceBlock = forestBiome.getSurfaceBlock();
-                }
-                else if (plainsWeight >= desertWeight) {
-                    blendedSurfaceBlock = plainsBiome.getSurfaceBlock();
-                }
-                else {
-                    blendedSurfaceBlock = desertBiome.getSurfaceBlock();
-                }
-
-                // Blend subSubSurface blocks
-                uint16_t forestSubSurfaceBlock = forestBiome.getSubSurfaceBlock();
-                uint16_t desertSubSurfaceBlock = desertBiome.getSubSurfaceBlock();
-                uint16_t plainsSubSurfaceBlock = plainsBiome.getSubSurfaceBlock();
-
-                uint16_t blendedSubSurfaceBlock = (forestWeight > desertWeight && forestWeight > plainsWeight) ? forestSubSurfaceBlock :
-                    (desertWeight > plainsWeight) ? desertSubSurfaceBlock : plainsSubSurfaceBlock;
-
-                // Blend undergroundSurface blocks
-                uint16_t forestUndergroundBlock = forestBiome.getUndergroundBlock();
-                uint16_t desertUndergroundBlock = desertBiome.getUndergroundBlock();
-                uint16_t plainsUndergroundBlock = plainsBiome.getUndergroundBlock();
-
-                uint16_t blendedUndergroundBlock = (forestWeight > desertWeight && forestWeight > plainsWeight) ? forestUndergroundBlock :
-                    (desertWeight > plainsWeight) ? desertUndergroundBlock : plainsUndergroundBlock;
-
                 if (y <= WATERLEVEL && y >= terrainHeight - 2)
                 {
                     blockTypes[index] = SAND;
                 }
-                else if (y == terrainHeight)
-                {
-                    blockTypes[index] = blendedSurfaceBlock;
+                else if (y == terrainHeight) {
+                    blockTypes[index] = primaryBiome.surfaceBlock;
                 }
-                else if (y >= terrainHeight - 4)
-                {
-                    blockTypes[index] = blendedSubSurfaceBlock;
+                else if (y >= terrainHeight - 4) {
+                    blockTypes[index] = primaryBiome.subSurfaceBlock;
                 }
-                else
-                {
-                    blockTypes[index] = blendedUndergroundBlock;
+                else {
+                    blockTypes[index] = primaryBiome.undergroundBlock;
                 }
             }
 
@@ -175,62 +188,69 @@ void Chunk::generateChunk()
 
             if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1)
             {
-                GLfloat totalWeight = forestWeight + desertWeight;
-                GLfloat randomValue = static_cast<float>(rand()) / RAND_MAX;
+                GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
 
-                if (randomValue < forestWeight)
-                {
-                    if (blockTypes[indexBelow] == GRASS_BLOCK)
-                    {
-                        // Forest
-                        if (forestBiome.shouldPlaceTree(globalX, globalZ))
+                GLfloat weightThreshold = 0.0f;
+                for (size_t i = 0; i < biomes.size(); ++i) {
+                    weightThreshold += biomeWeights[i];
+                    if (randomValue <= weightThreshold) {
+                        const BiomeData& biome = biomes[i];
+                        Biomes* biomeInstance = biomeInstances[biome.type];
+
+                        // -- FOREST -- //
+                        if (biome.type == BiomeTypes::Forest && blockTypes[indexBelow] == GRASS_BLOCK)
                         {
-                            // Generate trees
-                            uint8_t randomTreeType = rand() % 3;
-                            if (randomTreeType == 0)
-                                Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
-                            else if (randomTreeType == 1)
-                                Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
-                            else
-                                Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
-                        }
-                        else if (forestBiome.shouldPlaceGrass(globalX, globalZ))
-                        {
-                            uint8_t grassType = forestBiome.getRandomGrassType();
-                            if (grassType != -1)
+
+                            if (biomeInstance->shouldPlaceTree(globalX, globalZ))
                             {
-                                blockTypes[indexAbove] = grassType;
+                                uint8_t randomTreeType = rand() % 3;
+                                if (randomTreeType == 0)
+                                    Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                                else if (randomTreeType == 1)
+                                    Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
+                                else
+                                    Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
+                            }
+                            else if (biomeInstance->shouldPlaceGrass(globalX, globalZ))
+                            {
+                                uint8_t grassType = forestBiome.getRandomGrassType();
+                                if (grassType != -1)
+                                {
+                                    blockTypes[indexAbove] = grassType;
+                                }
+                            }
+                            else if (biomeInstance->shouldPlaceFlower(globalX, globalZ))
+                            {
+                                uint8_t flowerType = forestBiome.getRandomFlowerType();
+                                if (flowerType != -1)
+                                {
+                                    blockTypes[indexAbove] = flowerType;
+                                }
                             }
                         }
-                        else if (forestBiome.shouldPlaceFlower(globalX, globalZ))
+                        // -- PLAINS -- //
+                        else if (biome.type == BiomeTypes::Plains && blockTypes[indexBelow] == GRASS_BLOCK)
                         {
-                            uint8_t flowerType = forestBiome.getRandomFlowerType();
-                            if (flowerType != -1)
+                            if (plainsBiome.shouldPlaceTree(globalX, globalZ)) 
                             {
-                                blockTypes[indexAbove] = flowerType;
+                                Structure::generateBasePurpleTree(*this, x, terrainHeight + 1, z);
+                            }
+                            else if (plainsBiome.shouldPlaceGrass(globalX, globalZ)) {
+                                blockTypes[indexAbove] = plainsBiome.getRandomGrassType();
+                            }
+                            else if (plainsBiome.shouldPlaceFlower(globalX, globalZ)) {
+                                blockTypes[indexAbove] = plainsBiome.getRandomFlowerType();
                             }
                         }
-                    }
-                }
-                else if (randomValue < forestWeight + plainsWeight)
-                {
-                    if (blockTypes[indexBelow] == GRASS_BLOCK) {
-                        if (plainsBiome.shouldPlaceTree(globalX, globalZ)) {
-                            Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                        // -- DESERT -- //
+                        else if (biome.type == BiomeTypes::Desert && blockTypes[indexBelow] == SAND)
+                        {
+                            if (biomeInstance->shouldPlaceDeadBush(globalX, globalZ))
+                            {
+                                blockTypes[indexAbove] = DEADBUSH;
+                            }
                         }
-                        else if (plainsBiome.shouldPlaceGrass(globalX, globalZ)) {
-                            blockTypes[indexAbove] = plainsBiome.getRandomGrassType();
-                        }
-                        else if (plainsBiome.shouldPlaceFlower(globalX, globalZ)) {
-                            blockTypes[indexAbove] = plainsBiome.getRandomFlowerType();
-                        }
-                    }
-                }
-                else
-                {
-                    if (blockTypes[indexBelow] == SAND && desertBiome.shouldPlaceDeadBush(globalX, globalZ))
-                    {
-                        blockTypes[indexAbove] = DEADBUSH;
+                        break;
                     }
                 }
             }
@@ -250,18 +270,46 @@ void Chunk::generateChunk()
     isInitialized = true;
 }
 
-GLint Chunk::getTerrainHeightAt(GLint x, GLint z) const
+GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
 {
     GLfloat biomeNoiseValue = biomeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
     GLfloat biomeValue = (biomeNoiseValue + 1.0f) / 2.0f;
-    GLfloat desertWeight = biomeValue;
-    GLfloat forestWeight = 1.0f - biomeValue;
 
-    GLfloat forestHeight = forestBiome.getTerrainHeightAt(x, z);
-    GLfloat desertHeight = desertBiome.getTerrainHeightAt(x, z);
+    std::vector<GLfloat> biomeWeights(biomes.size(), 0.0f);
 
-    // Blend heights
-    GLfloat blendedHeight = forestHeight * forestWeight + desertHeight * desertWeight;
+    for (size_t i = 0; i < biomes.size(); ++i) {
+        const BiomeData& biome = biomes[i];
+        GLfloat weight = 0.0f;
+
+        if (biome.type == BiomeTypes::Desert) {
+            weight = 1.0f - smoothstep(biome.edge0, biome.edge1, biomeValue);
+        }
+        else if (biome.type == BiomeTypes::Plains) {
+            weight = smoothstep(biome.edge0, biome.edge1, biomeValue) * (1.0f - smoothstep(biome.edge2, biome.edge3, biomeValue));
+        }
+        else if (biome.type == BiomeTypes::Forest) {
+            weight = smoothstep(biome.edge0, biome.edge1, biomeValue);
+        }
+
+        biomeWeights[i] = weight;
+    }
+
+    GLfloat totalWeight = std::accumulate(biomeWeights.begin(), biomeWeights.end(), 0.0f);
+    if (totalWeight > 0.0f) {
+        for (GLfloat& weight : biomeWeights) {
+            weight /= totalWeight;
+        }
+    }
+
+    GLfloat blendedHeight = 0.0f;
+    for (size_t i = 0; i < biomes.size(); ++i) {
+        if (biomeWeights[i] > 0.0f) {
+            const BiomeData& biome = biomes[i];
+            const Biomes* biomeInstance = getBiomeInstance(biome.type);
+            GLfloat biomeHeight = biomeInstance->getTerrainHeightAt(x, z);
+            blendedHeight += biomeHeight * biomeWeights[i];
+        }
+    }
 
     return static_cast<int16_t>(blendedHeight);
 }

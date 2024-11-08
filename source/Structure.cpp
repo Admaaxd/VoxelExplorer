@@ -308,3 +308,65 @@ void Structure::generateProceduralTreeYellowLeaves(Chunk& chunk, uint8_t x, uint
         }
     }
 }
+
+void Structure::generateBasePurpleTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z)
+{
+    uint8_t trunkHeight = 3 + rand() % 2;
+    uint8_t leafHeight = 2 + rand() % 2;
+
+    auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
+        int32_t newX = x + offsetX;
+        int32_t newY = y + offsetY;
+        int32_t newZ = z + offsetZ;
+
+        int32_t globalX = chunk.chunkX * CHUNK_SIZE + newX;
+        int32_t globalZ = chunk.chunkZ * CHUNK_SIZE + newZ;
+
+        int32_t targetChunkX = globalX / CHUNK_SIZE;
+        if (globalX < 0 && globalX % CHUNK_SIZE != 0) targetChunkX -= 1;
+
+        int32_t targetChunkZ = globalZ / CHUNK_SIZE;
+        if (globalZ < 0 && globalZ % CHUNK_SIZE != 0) targetChunkZ -= 1;
+
+        int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
+        int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
+
+        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+
+        if (targetChunk) {
+            targetChunk->setBlockType(localX, newY, localZ, blockType);
+            targetChunk->needsMeshUpdate = true;
+        }
+        else {
+            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
+        }
+    };
+
+    // Generate trunk
+    for (uint8_t i = 0; i < trunkHeight; ++i) {
+        setLocalBlockType(0, i, 0, OAK_LOG);
+    }
+
+    // Generate branches
+    int8_t branchStart = trunkHeight - 1;
+    for (int8_t i = 0; i < 4; ++i) {
+        int8_t branchLength = 1 + rand() % 2;
+        int8_t offsetX = (i % 2 == 0) ? branchLength : 0;
+        int8_t offsetZ = (i % 2 == 1) ? branchLength : 0;
+
+        for (int8_t j = 0; j < branchLength; ++j) {
+            setLocalBlockType(offsetX - j, branchStart, offsetZ - j, OAK_LOG);
+        }
+    }
+
+    for (uint8_t j = 0; j < leafHeight; ++j) {
+        setLocalBlockType(0, trunkHeight + j, 0, OAK_LEAF_PURPLE);
+    }
+
+    for (GLint i = 0; i < 4; ++i) {
+        int8_t offsetX = (i % 2 == 0) ? (1 + rand() % 2) : 0;
+        int8_t offsetZ = (i % 2 == 1) ? (1 + rand() % 2) : 0;
+
+        setLocalBlockType(offsetX, branchStart, offsetZ, OAK_LEAF_PURPLE);
+    }
+}
