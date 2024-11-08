@@ -3,7 +3,7 @@
 
 Chunk::Chunk(GLint x, GLint z, TextureManager& textureManager, World* world)
     : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world), 
-      forestBiome(BiomeTypes::Forest), desertBiome(BiomeTypes::Desert)
+      forestBiome(BiomeTypes::Forest), desertBiome(BiomeTypes::Desert), plainsBiome(BiomeTypes::Plains)
 {
     minBounds = glm::vec3(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
     maxBounds = glm::vec3((chunkX + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunkZ + 1) * CHUNK_SIZE);
@@ -41,14 +41,24 @@ Biomes Chunk::determineBiomeType(GLint x, GLint z)
 
     GLfloat noiseValue = biomeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
-    if (noiseValue < -0.2f)
+    if (noiseValue < -0.3f)
     {
         return Biomes(BiomeTypes::Desert);
+    }
+    else if (noiseValue < 0.3f)
+    {
+        return Biomes(BiomeTypes::Plains);
     }
     else
     {
         return Biomes(BiomeTypes::Forest);
     }
+}
+
+GLfloat Chunk::smoothstep(GLfloat edge0, GLfloat edge1, GLfloat x) {
+    x = (x - edge0) / (edge1 - edge0);
+    x = std::max(0.0f, std::min(1.0f, x));
+    return x * x * (3 - 2 * x);
 }
 
 void Chunk::generateChunk()
@@ -69,13 +79,22 @@ void Chunk::generateChunk()
 
             GLfloat biomeValue = (biomeNoiseValue + 1.0f) / 2.0f;
 
-            GLfloat desertWeight = biomeValue;
-            GLfloat forestWeight = 1.0f - biomeValue;
+            GLfloat desertWeight = 1.0f - smoothstep(0.3f, 0.4f, biomeValue);
+            GLfloat plainsWeight = smoothstep(0.3f, 0.4f, biomeValue) * (1.0f - smoothstep(0.6f, 0.7f, biomeValue));
+            GLfloat forestWeight = smoothstep(0.6f, 0.7f, biomeValue);
+
+            GLfloat totalWeight = desertWeight + plainsWeight + forestWeight;
+            if (totalWeight > 0.0f) {
+                desertWeight /= totalWeight;
+                plainsWeight /= totalWeight;
+                forestWeight /= totalWeight;
+            }
 
             GLfloat forestHeight = forestBiome.getTerrainHeightAt(globalX, globalZ);
             GLfloat desertHeight = desertBiome.getTerrainHeightAt(globalX, globalZ);
+            GLfloat plainsHeight = plainsBiome.getTerrainHeightAt(globalX, globalZ);
 
-            GLfloat blendedHeight = forestHeight * forestWeight + desertHeight * desertWeight;
+            GLfloat blendedHeight = forestHeight * forestWeight + desertHeight * desertWeight + plainsHeight * plainsWeight;
             uint16_t terrainHeight = static_cast<uint16_t>(blendedHeight);
 
             for (uint8_t y = 0; y < CHUNK_HEIGHT; ++y)
@@ -83,7 +102,7 @@ void Chunk::generateChunk()
                 uint16_t index = getIndex(x, y, z);
 
                 GLfloat caveValue = caveNoise.GetNoise(static_cast<GLfloat>(globalX), static_cast<GLfloat>(y), static_cast<GLfloat>(globalZ));
-                GLfloat biomeCaveThreshold = (forestWeight * 0.85f) + (desertWeight * 0.5f);
+                GLfloat biomeCaveThreshold = (forestWeight * 0.85f) + (plainsWeight * 0.98f) + (desertWeight * 0.5f);
                 bool isCave = (caveValue > biomeCaveThreshold) && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer);
 
                 if (isCave && y > caveMinHeight && y < (CHUNK_HEIGHT - surfaceBuffer))
@@ -104,20 +123,34 @@ void Chunk::generateChunk()
                 // Blend surface blocks
                 uint16_t forestSurfaceBlock = forestBiome.getSurfaceBlock();
                 uint16_t desertSurfaceBlock = desertBiome.getSurfaceBlock();
+                uint16_t plainsSurfaceBlock = plainsBiome.getSurfaceBlock();
 
-                uint16_t blendedSurfaceBlock = (forestWeight > desertWeight) ? forestSurfaceBlock : desertSurfaceBlock;
+                uint16_t blendedSurfaceBlock;
+                if (forestWeight >= desertWeight && forestWeight >= plainsWeight) {
+                    blendedSurfaceBlock = forestBiome.getSurfaceBlock();
+                }
+                else if (plainsWeight >= desertWeight) {
+                    blendedSurfaceBlock = plainsBiome.getSurfaceBlock();
+                }
+                else {
+                    blendedSurfaceBlock = desertBiome.getSurfaceBlock();
+                }
 
                 // Blend subSubSurface blocks
                 uint16_t forestSubSurfaceBlock = forestBiome.getSubSurfaceBlock();
                 uint16_t desertSubSurfaceBlock = desertBiome.getSubSurfaceBlock();
+                uint16_t plainsSubSurfaceBlock = plainsBiome.getSubSurfaceBlock();
 
-                uint16_t blendedSubSurfaceBlock = (forestWeight > desertWeight) ? forestSubSurfaceBlock : desertSubSurfaceBlock;
+                uint16_t blendedSubSurfaceBlock = (forestWeight > desertWeight && forestWeight > plainsWeight) ? forestSubSurfaceBlock :
+                    (desertWeight > plainsWeight) ? desertSubSurfaceBlock : plainsSubSurfaceBlock;
 
                 // Blend undergroundSurface blocks
-                uint16_t forestUndergroundSurfaceBlock = forestBiome.getUndergroundBlock();
-                uint16_t desertUndergroundSurfaceBlock = desertBiome.getUndergroundBlock();
+                uint16_t forestUndergroundBlock = forestBiome.getUndergroundBlock();
+                uint16_t desertUndergroundBlock = desertBiome.getUndergroundBlock();
+                uint16_t plainsUndergroundBlock = plainsBiome.getUndergroundBlock();
 
-                uint16_t blendedUndergroundSurfaceBlock = (forestWeight > desertWeight) ? forestUndergroundSurfaceBlock : desertUndergroundSurfaceBlock;
+                uint16_t blendedUndergroundBlock = (forestWeight > desertWeight && forestWeight > plainsWeight) ? forestUndergroundBlock :
+                    (desertWeight > plainsWeight) ? desertUndergroundBlock : plainsUndergroundBlock;
 
                 if (y <= WATERLEVEL && y >= terrainHeight - 2)
                 {
@@ -133,7 +166,7 @@ void Chunk::generateChunk()
                 }
                 else
                 {
-                    blockTypes[index] = blendedUndergroundSurfaceBlock;
+                    blockTypes[index] = blendedUndergroundBlock;
                 }
             }
 
@@ -143,7 +176,7 @@ void Chunk::generateChunk()
             if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1)
             {
                 GLfloat totalWeight = forestWeight + desertWeight;
-                GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX * totalWeight;
+                GLfloat randomValue = static_cast<float>(rand()) / RAND_MAX;
 
                 if (randomValue < forestWeight)
                 {
@@ -179,7 +212,21 @@ void Chunk::generateChunk()
                         }
                     }
                 }
-                else if (randomValue < desertWeight && desertWeight > 0.6f)
+                else if (randomValue < forestWeight + plainsWeight)
+                {
+                    if (blockTypes[indexBelow] == GRASS_BLOCK) {
+                        if (plainsBiome.shouldPlaceTree(globalX, globalZ)) {
+                            Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                        }
+                        else if (plainsBiome.shouldPlaceGrass(globalX, globalZ)) {
+                            blockTypes[indexAbove] = plainsBiome.getRandomGrassType();
+                        }
+                        else if (plainsBiome.shouldPlaceFlower(globalX, globalZ)) {
+                            blockTypes[indexAbove] = plainsBiome.getRandomFlowerType();
+                        }
+                    }
+                }
+                else
                 {
                     if (blockTypes[indexBelow] == SAND && desertBiome.shouldPlaceDeadBush(globalX, globalZ))
                     {
@@ -241,7 +288,7 @@ inline bool Chunk::isTransparent(GLint blockType)
 {
     return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == OAK_LEAF_ORANGE || blockType == OAK_LEAF_YELLOW || blockType == GLASS ||
         blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || 
-        blockType == GRASS3 || blockType == DEADBUSH;
+        blockType == GRASS3 || blockType == DEADBUSH || blockType == OAK_LEAF_PURPLE;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -668,6 +715,8 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case OAK_LEAF_YELLOW: return 21;
 
     case DEADBUSH: return 22;
+
+    case OAK_LEAF_PURPLE: return 23;
     
     default: return DIRT;
     }

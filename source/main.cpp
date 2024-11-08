@@ -126,7 +126,7 @@ void main::processRendering(GLFWwindow* window, shader& mainShader, shader& wate
 	frustum.update(projection * view);
 	glm::vec3 playerPosition = camera.getPosition();
 	world.updatePlayerPosition(playerPosition, frustum);
-	world.processChunkLoadQueue(1, 40);
+	world.processChunkLoadQueue(1, 20);
 
 	player.processInput(window, isGUIEnabled, escapeKeyPressedLastFrame, lastX, lastY);
 	player.update(deltaTime);

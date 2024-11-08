@@ -62,6 +62,8 @@ private:
 
 	Biomes determineBiomeType(GLint x, GLint z);
 
+	GLfloat smoothstep(GLfloat edge0, GLfloat edge1, GLfloat x);
+
 	GLuint textureID;
 	FastNoiseLite noiseGenerator;
 	std::vector<GLfloat> vertices;
@@ -80,5 +82,5 @@ private:
 	TextureManager& textureManager;
 
 	FastNoiseLite biomeNoise, caveNoise;
-	Biomes forestBiome, desertBiome;
+	Biomes forestBiome, desertBiome, plainsBiome;
 };

@@ -72,8 +72,25 @@ void Biomes::initializeNoise() {
 
         flowerNoise.SetSeed(11);
         flowerNoise.SetFrequency(0.9f);
+
         break;
+
+    case BiomeTypes::Plains:
+        baseNoise.SetFrequency(0.003f);
+        baseNoise.SetFractalOctaves(3);
+
+        detailNoise.SetFrequency(0.02f);
+        detailNoise.SetFractalOctaves(5);
+
+        treeNoise.SetFrequency(0.15f);
+
+        grassNoise.SetSeed(10);
+        grassNoise.SetFrequency(0.8f);
+
+        flowerNoise.SetSeed(11);
+        flowerNoise.SetFrequency(0.8f);
     }
+
 }
 
 GLint Biomes::getTerrainHeightAt(GLint x, GLint z) const {
@@ -84,13 +101,16 @@ GLint Biomes::getTerrainHeightAt(GLint x, GLint z) const {
         height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
         break;
 
-    case BiomeTypes::Desert:
+    case BiomeTypes::Desert: {
         height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f;
         GLfloat cliffValue = cliffNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
         height += fabs(cliffValue) * cliffAmplitude;
         break;
-
+    }
+    case BiomeTypes::Plains:
+        height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.6f;
+        break;
     }
 
     return static_cast<GLint>((height + 1.0f) * 0.5f * 128);
@@ -104,19 +124,37 @@ bool Biomes::isCave(GLint x, GLint y, GLint z) const {
 bool Biomes::shouldPlaceTree(GLint x, GLint z) const {
     GLfloat treeChance = treeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
-    return biomeTypes == BiomeTypes::Forest && treeChance > 0.92f;
+    if (biomeTypes == BiomeTypes::Forest) {
+        return treeChance > 0.92f;
+    }
+    else if (biomeTypes == BiomeTypes::Plains) {
+        return treeChance > 0.97f;
+    }
+    return false;
 }
 
 bool Biomes::shouldPlaceGrass(GLint x, GLint z) const {
     GLfloat grassChance = grassNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
-    return biomeTypes == BiomeTypes::Forest && grassChance > 0.45f;
+    if (biomeTypes == BiomeTypes::Forest) {
+        return grassChance > 0.45f;
+    }
+    else if (biomeTypes == BiomeTypes::Plains) {
+        return grassChance > 0.55f;
+    }
+    return false;
 }
 
 bool Biomes::shouldPlaceFlower(GLint x, GLint z) const {
     GLfloat flowerChance = flowerNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
-    return biomeTypes == BiomeTypes::Forest && flowerChance > 0.70f;
+    if (biomeTypes == BiomeTypes::Forest) {
+        return flowerChance > 0.70f;
+    }
+    else if (biomeTypes == BiomeTypes::Plains) {
+        return flowerChance > 0.80f;
+    }
+    return false;
 }
 
 bool Biomes::shouldPlaceDeadBush(int x, int z) const {
@@ -128,7 +166,7 @@ bool Biomes::shouldPlaceDeadBush(int x, int z) const {
 }
 
 GLint Biomes::getRandomGrassType() const {
-    if (biomeTypes == BiomeTypes::Forest) {
+    if (biomeTypes == BiomeTypes::Forest || biomeTypes == BiomeTypes::Plains) {
         GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
         if      (randomValue < 0.33f)   return GRASS1;
         else if (randomValue < 0.67f)   return GRASS2;
@@ -138,7 +176,7 @@ GLint Biomes::getRandomGrassType() const {
 }
 
 GLint Biomes::getRandomFlowerType() const {
-    if (biomeTypes == BiomeTypes::Forest) {
+    if (biomeTypes == BiomeTypes::Forest || biomeTypes == BiomeTypes::Plains) {
         GLint flowerType = rand() % 5;
         switch (flowerType) {
         case 0: return FLOWER1;
@@ -158,7 +196,8 @@ GLint Biomes::getSurfaceBlock() const {
         return GRASS_BLOCK;
     case BiomeTypes::Desert:
         return SAND;
-    
+    case BiomeTypes::Plains:
+        return GRASS_BLOCK;
     }
     return DIRT;
 }
@@ -169,7 +208,8 @@ GLint Biomes::getSubSurfaceBlock() const {
         return DIRT;
     case BiomeTypes::Desert:
         return STONE;
-    
+    case BiomeTypes::Plains:
+        return DIRT;
     }
     return STONE;
 }

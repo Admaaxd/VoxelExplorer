@@ -3,5 +3,6 @@
 enum class BiomeTypes
 {
 	Forest,
-	Desert
+	Desert,
+	Plains
 };
