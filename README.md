@@ -23,8 +23,8 @@ This project is a voxel-based 3D game, similar to Minecraft, developed as part o
 - [x] Animated nice water (todo improve)
 - [x] Shadows (todo improve)
 - [x] Collision detection (AABB)
-- [x] Fog (todo improve)
-- [ ] Biomes
+- [x] Fog
+- [x] Biomes
 - [x] Grass and flowers
 - [ ] Torchlight
 - [ ] Save & loading
