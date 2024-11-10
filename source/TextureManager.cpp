@@ -100,6 +100,8 @@ GLuint TextureManager::getInventoryTextureID(GLint blockType) const
         return inventoryTextureIDs[22];
     case OAK_LEAF_PURPLE:
         return inventoryTextureIDs[23];
+    case SNOW:
+        return inventoryTextureIDs[24];
     default:
         return 0;
     }

@@ -19,9 +19,6 @@ struct BiomeData {
 	GLfloat minThreshold, maxThreshold;
 	BiomeTypes type;
 	GLfloat baseFrequency;
-	uint16_t surfaceBlock;
-	uint16_t subSurfaceBlock;
-	uint16_t undergroundBlock;
 	GLfloat caveThreshold;
 	GLfloat edge0, edge1, edge2, edge3;
 };
@@ -97,17 +94,19 @@ private:
 	TextureManager& textureManager;
 
 	FastNoiseLite biomeNoise, caveNoise;
-	Biomes forestBiome, desertBiome, plainsBiome;
+	Biomes forestBiome, desertBiome, plainsBiome, mountainBiome;
 
 	std::vector<BiomeData> biomes = {
-		{0.0f, 0.33f, BiomeTypes::Desert, 0.0011f, SAND, STONE, STONE, 0.5f, 0.2f, 0.4f, 0.0f, 0.0f},
-		{0.33f, 0.67f, BiomeTypes::Plains, 0.0003f, GRASS_BLOCK, DIRT, STONE, 0.98f, 0.3f, 0.4f, 0.6f, 0.7f},
-		{0.67f, 1.0f, BiomeTypes::Forest, 0.005f, GRASS_BLOCK, DIRT, STONE, 0.85f, 0.6f, 0.8f, 0.0f, 0.0f}
+		{0.0f, 0.33f, BiomeTypes::Desert, 0.0011f, 0.5f, 0.2f, 0.4f, 0.0f, 0.0f},
+		{0.33f, 0.5f, BiomeTypes::Plains, 0.0003f, 0.98f, 0.3f, 0.4f, 0.6f, 0.7f},
+		{0.5f, 0.8f, BiomeTypes::Forest, 0.002f, 0.85f, 0.6f, 0.8f, 0.0f, 0.0f},
+		{0.8f, 1.0f, BiomeTypes::Mountain, 0.005f, 0.9f, 0.6f, 0.7f, 0.6f, 0.8f}
 	};
 
 	std::unordered_map<BiomeTypes, Biomes*> biomeInstances = {
 		{BiomeTypes::Desert, &desertBiome},
 		{BiomeTypes::Plains, &plainsBiome},
-		{BiomeTypes::Forest, &forestBiome}
+		{BiomeTypes::Forest, &forestBiome},
+		{BiomeTypes::Mountain, &mountainBiome}
 	};
 };

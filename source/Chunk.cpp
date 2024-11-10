@@ -3,7 +3,7 @@
 
 Chunk::Chunk(GLint x, GLint z, TextureManager& textureManager, World* world)
     : chunkX(x), chunkZ(z), textureManager(textureManager), textureID(textureManager.getTextureID()), world(world), 
-      forestBiome(BiomeTypes::Forest), desertBiome(BiomeTypes::Desert), plainsBiome(BiomeTypes::Plains)
+      forestBiome(BiomeTypes::Forest), desertBiome(BiomeTypes::Desert), plainsBiome(BiomeTypes::Plains), mountainBiome(BiomeTypes::Mountain)
 {
     minBounds = glm::vec3(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
     maxBounds = glm::vec3((chunkX + 1) * CHUNK_SIZE, CHUNK_HEIGHT, (chunkZ + 1) * CHUNK_SIZE);
@@ -33,7 +33,7 @@ void Chunk::setupChunk()
 Biomes Chunk::determineBiomeType(GLint x, GLint z)
 {
     biomeNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-    biomeNoise.SetFrequency(0.001f);
+    biomeNoise.SetFrequency(0.0003f);
 
     caveNoise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
     caveNoise.SetFractalOctaves(5);
@@ -116,6 +116,9 @@ void Chunk::generateChunk()
                 else if (biome.type == BiomeTypes::Forest) {
                     weight = smoothstep(biome.edge0, biome.edge1, biomeValue);
                 }
+                else if (biome.type == BiomeTypes::Mountain) {
+                    weight = smoothstep(biome.edge0, biome.edge1, biomeValue) * (1.0f - smoothstep(biome.edge2, biome.edge3, biomeValue));
+                }
                 biomeWeights[i] = weight;
             }
 
@@ -140,6 +143,7 @@ void Chunk::generateChunk()
 
             size_t maxWeightBiomeIndex = std::distance(biomeWeights.begin(), std::max_element(biomeWeights.begin(), biomeWeights.end()));
             const BiomeData& primaryBiome = biomes[maxWeightBiomeIndex];
+            Biomes* biomeInstance = biomeInstances[primaryBiome.type];
 
             GLfloat biomeCaveThreshold = 0.0f;
             for (size_t i = 0; i < biomes.size(); ++i) {
@@ -173,13 +177,13 @@ void Chunk::generateChunk()
                     blockTypes[index] = SAND;
                 }
                 else if (y == terrainHeight) {
-                    blockTypes[index] = primaryBiome.surfaceBlock;
+                    blockTypes[index] = biomeInstance->getSurfaceBlock(y);
                 }
                 else if (y >= terrainHeight - 4) {
-                    blockTypes[index] = primaryBiome.subSurfaceBlock;
+                    blockTypes[index] = biomeInstance->getSubSurfaceBlock();
                 }
                 else {
-                    blockTypes[index] = primaryBiome.undergroundBlock;
+                    blockTypes[index] = biomeInstance->getUndergroundBlock();
                 }
             }
 
@@ -250,6 +254,7 @@ void Chunk::generateChunk()
                                 blockTypes[indexAbove] = DEADBUSH;
                             }
                         }
+
                         break;
                     }
                 }
@@ -289,6 +294,9 @@ GLint Chunk::getTerrainHeightAt(GLint x, GLint z)
         }
         else if (biome.type == BiomeTypes::Forest) {
             weight = smoothstep(biome.edge0, biome.edge1, biomeValue);
+        }
+        else if (biome.type == BiomeTypes::Mountain) {
+            weight = smoothstep(biome.edge0, biome.edge1, biomeValue) * (1.0f - smoothstep(biome.edge2, biome.edge3, biomeValue));
         }
 
         biomeWeights[i] = weight;
@@ -765,6 +773,8 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case DEADBUSH: return 22;
 
     case OAK_LEAF_PURPLE: return 23;
+
+    case SNOW: return 24;
     
     default: return DIRT;
     }

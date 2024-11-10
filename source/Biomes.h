@@ -21,7 +21,7 @@ public:
     GLint getRandomGrassType() const;
     GLint getRandomFlowerType() const;
 
-    GLint getSurfaceBlock() const;
+    GLint getSurfaceBlock(GLint y) const;
     GLint getSubSurfaceBlock() const;
     GLint getUndergroundBlock() const;
 

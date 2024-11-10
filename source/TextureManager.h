@@ -51,6 +51,7 @@ private:
         "textures/oak_leaf_yellow.png",     // OAK LEAF YELLOW -> 21
         "textures/deadbush.png",            // DEADBUSH -> 22
         "textures/oak_leaf_purple.png",     // OAK LEAF PURPLE -> 23
+        "textures/snow.jpg",                // SNOW BLOCK -> 24
 
     };
 };

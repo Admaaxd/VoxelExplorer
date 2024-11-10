@@ -4,5 +4,6 @@ enum class BiomeTypes
 {
 	Forest,
 	Desert,
-	Plains
+	Plains,
+	Mountain
 };

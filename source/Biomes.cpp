@@ -89,6 +89,16 @@ void Biomes::initializeNoise() {
 
         flowerNoise.SetSeed(11);
         flowerNoise.SetFrequency(0.8f);
+
+        break;
+
+    case BiomeTypes::Mountain:
+        baseNoise.SetFrequency(0.001f);
+        baseNoise.SetFractalOctaves(4);
+
+        cliffNoise.SetFrequency(0.003f);
+        cliffNoise.SetFractalOctaves(9);
+        cliffAmplitude = 1.0f;
     }
 
 }
@@ -102,15 +112,23 @@ GLint Biomes::getTerrainHeightAt(GLint x, GLint z) const {
         break;
 
     case BiomeTypes::Desert: {
-        height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f;
-        GLfloat cliffValue = cliffNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+            height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.5f;
+            GLfloat cliffValue = cliffNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
 
-        height += fabs(cliffValue) * cliffAmplitude;
-        break;
-    }
+            height += fabs(cliffValue) * cliffAmplitude;
+            break;
+        }
     case BiomeTypes::Plains:
         height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z)) * 0.6f;
         break;
+
+    case BiomeTypes::Mountain: {
+            height = baseNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+            GLfloat ridge = ridgeNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+            GLfloat cliffValue = cliffNoise.GetNoise(static_cast<GLfloat>(x), static_cast<GLfloat>(z));
+            height += ridge + fabs(cliffValue) * cliffAmplitude;
+            break;
+        }
     }
 
     return static_cast<GLint>((height + 1.0f) * 0.5f * 128);
@@ -190,7 +208,7 @@ GLint Biomes::getRandomFlowerType() const {
     return -1;
 }
 
-GLint Biomes::getSurfaceBlock() const {
+GLint Biomes::getSurfaceBlock(GLint y) const {
     switch (biomeTypes) {
     case BiomeTypes::Forest:
         return GRASS_BLOCK;
@@ -198,6 +216,8 @@ GLint Biomes::getSurfaceBlock() const {
         return SAND;
     case BiomeTypes::Plains:
         return GRASS_BLOCK;
+    case BiomeTypes::Mountain:
+        return y >= 100 ? SNOW : STONE;
     }
     return DIRT;
 }
@@ -207,9 +227,11 @@ GLint Biomes::getSubSurfaceBlock() const {
     case BiomeTypes::Forest:
         return DIRT;
     case BiomeTypes::Desert:
-        return STONE;
+        return SAND;
     case BiomeTypes::Plains:
         return DIRT;
+    case BiomeTypes::Mountain:
+        return STONE;
     }
     return STONE;
 }
