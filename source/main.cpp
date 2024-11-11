@@ -20,6 +20,7 @@ GLfloat fps = 0;
 bool isGUIEnabled = false;
 bool escapeKeyPressedLastFrame = false;
 bool isOutlineEnabled = false;
+bool isHotbarVisible = true;
 
 bool isCrosshairEnabled = true;
 glm::vec3 crosshairColor(1.0f, 1.0f, 1.0f);
@@ -305,6 +306,8 @@ void main::initializeImGui(GLFWwindow* window) {
 
 void main::renderInventoryHotbar(Player& player, uint8_t selectedSlot)
 {
+	if (!isHotbarVisible) return;
+
 	GLint windowWidth, windowHeight;
 	glfwGetWindowSize(glfwGetCurrentContext(), &windowWidth, &windowHeight);
 
@@ -437,6 +440,10 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 
 	ImGui::Separator();
 	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled); // Checkbox for enabling/disabling outline
+
+	// Inventory Hotbar visiblity
+	ImGui::Separator();
+	ImGui::Checkbox("Show Inventory Hotbar", &isHotbarVisible);
 
 	// Crosshair customization
 	ImGui::Separator();
