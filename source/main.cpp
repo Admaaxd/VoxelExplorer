@@ -85,7 +85,7 @@ int main()
 	main::initializeImGui(window);
 
 	LoadingScreen loadingScreen(SCR_WIDTH, SCR_HEIGHT);
-	loadingScreen.display(window, world, frustum, camera.getPosition());
+	//loadingScreen.display(window, world, frustum, camera.getPosition());
 
 	glm::vec3 spawnPosition = camera.getPosition();
 	spawnPosition.y = world.getTerrainHeightAt(spawnPosition.x, spawnPosition.z);
@@ -438,12 +438,34 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 		skyboxRenderer.setOrbitSpeed(sunSpeed);
 	}
 
+	// Mesh outline Toggle
 	ImGui::Separator();
-	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled); // Checkbox for enabling/disabling outline
+	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled);
 
-	// Inventory Hotbar visiblity
+	// Inventory Hotbar visiblity Toggle
 	ImGui::Separator();
 	ImGui::Checkbox("Show Inventory Hotbar", &isHotbarVisible);
+
+	// Ambient Occlusion Toggle
+	ImGui::Separator();
+	bool aoState = world.getAOState();
+	if (ImGui::Checkbox("Enable Ambient Occlusion", &aoState)) {
+		world.setAOState(aoState);
+	}
+
+	// Frustum culling Toggle
+	ImGui::Separator();
+	bool frustumCullingState = world.getFrustumCullingState();
+	if (ImGui::Checkbox("Enable Frustum Culling", &frustumCullingState)) {
+		world.setFrustumCullingState(frustumCullingState);
+	}
+
+	// Structure generation toggle
+	ImGui::Separator();
+	bool structureGenerationState = world.getStructureGenerationState();
+	if (ImGui::Checkbox("Enable Structure Generation", &structureGenerationState)) {
+		world.setStructureGenerationState(structureGenerationState);
+	}
 
 	// Crosshair customization
 	ImGui::Separator();

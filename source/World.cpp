@@ -329,6 +329,8 @@ void World::updateNeighboringChunksOnBlockChange(int16_t chunkX, int16_t chunkZ,
 
 bool World::isChunkInFrustum(int16_t chunkX, int16_t chunkZ, const Frustum& frustum) const
 {
+	if (!isFrustumCullingEnabled) return true;
+
 	// Calculate the chunk's AABB
 	glm::vec3 minBounds(chunkX * CHUNK_SIZE, 0, chunkZ * CHUNK_SIZE);
 	glm::vec3 maxBounds(chunkX * CHUNK_SIZE + CHUNK_SIZE, CHUNK_HEIGHT, chunkZ * CHUNK_SIZE + CHUNK_SIZE);
@@ -361,4 +363,27 @@ GLfloat World::getTerrainHeightAt(GLfloat x, GLfloat z)
 	if (localZ < 0) localZ += CHUNK_SIZE;
 
 	return static_cast<GLfloat>(chunk->getTerrainHeightAt(localX, localZ));
+}
+
+void World::updateAllChunkMeshes() {
+	for (auto& pair : chunks) {
+		Chunk* chunk = pair.second;
+		if (chunk) {
+			chunk->needsMeshUpdate = true;
+		}
+	}
+}
+
+void World::setAOState(bool enabled) {
+	isAOEnabled = enabled;
+	updateAllChunkMeshes();
+}
+
+void World::setFrustumCullingState(bool enabled) {
+	isFrustumCullingEnabled = enabled;
+	updateAllChunkMeshes();
+}
+
+void World::setStructureGenerationState(bool enabled) {
+	isStructureGenerationEnabled = enabled;
 }

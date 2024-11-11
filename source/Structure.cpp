@@ -2,6 +2,7 @@
 #include "Chunk.h"
 #include "World.h"
 
+/*
 // Minecraft looking tree
 void Structure::generateBaseTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
     uint8_t treeHeight = 5 + rand() % 2;  // Random trunk height
@@ -75,6 +76,7 @@ void Structure::generateBaseTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) 
     // Topmost leaf
     setLocalBlockType(0, treeHeight, 0, 6);
 }
+*/
 
 void Structure::generateBaseProceduralTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
     uint8_t treeHeight = 10 + rand() % 6;  // Random trunk height

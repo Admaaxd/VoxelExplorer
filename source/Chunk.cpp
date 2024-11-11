@@ -190,72 +190,74 @@ void Chunk::generateChunk()
             uint16_t indexBelow = getIndex(x, terrainHeight, z);
             uint16_t indexAbove = getIndex(x, terrainHeight + 1, z);
 
-            if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1)
-            {
-                GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
+            if (world->isStructureGenerationEnabled) {
+                if (blockTypes[indexBelow] != -1 && blockTypes[indexAbove] == -1)
+                {
+                    GLfloat randomValue = static_cast<GLfloat>(rand()) / RAND_MAX;
 
-                GLfloat weightThreshold = 0.0f;
-                for (size_t i = 0; i < biomes.size(); ++i) {
-                    weightThreshold += biomeWeights[i];
-                    if (randomValue <= weightThreshold) {
-                        const BiomeData& biome = biomes[i];
-                        Biomes* biomeInstance = biomeInstances[biome.type];
+                    GLfloat weightThreshold = 0.0f;
+                    for (size_t i = 0; i < biomes.size(); ++i) {
+                        weightThreshold += biomeWeights[i];
+                        if (randomValue <= weightThreshold) {
+                            const BiomeData& biome = biomes[i];
+                            Biomes* biomeInstance = biomeInstances[biome.type];
 
-                        // -- FOREST -- //
-                        if (biome.type == BiomeTypes::Forest && blockTypes[indexBelow] == GRASS_BLOCK)
-                        {
-
-                            if (biomeInstance->shouldPlaceTree(globalX, globalZ))
+                            // -- FOREST -- //
+                            if (biome.type == BiomeTypes::Forest && blockTypes[indexBelow] == GRASS_BLOCK)
                             {
-                                uint8_t randomTreeType = rand() % 3;
-                                if (randomTreeType == 0)
-                                    Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
-                                else if (randomTreeType == 1)
-                                    Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
-                                else
-                                    Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
-                            }
-                            else if (biomeInstance->shouldPlaceGrass(globalX, globalZ))
-                            {
-                                uint8_t grassType = forestBiome.getRandomGrassType();
-                                if (grassType != -1)
+
+                                if (biomeInstance->shouldPlaceTree(globalX, globalZ))
                                 {
-                                    blockTypes[indexAbove] = grassType;
+                                    uint8_t randomTreeType = rand() % 3;
+                                    if (randomTreeType == 0)
+                                        Structure::generateBaseProceduralTree(*this, x, terrainHeight + 1, z);
+                                    else if (randomTreeType == 1)
+                                        Structure::generateProceduralTreeOrangeLeaves(*this, x, terrainHeight + 1, z);
+                                    else
+                                        Structure::generateProceduralTreeYellowLeaves(*this, x, terrainHeight + 1, z);
+                                }
+                                else if (biomeInstance->shouldPlaceGrass(globalX, globalZ))
+                                {
+                                    uint8_t grassType = forestBiome.getRandomGrassType();
+                                    if (grassType != -1)
+                                    {
+                                        blockTypes[indexAbove] = grassType;
+                                    }
+                                }
+                                else if (biomeInstance->shouldPlaceFlower(globalX, globalZ))
+                                {
+                                    uint8_t flowerType = forestBiome.getRandomFlowerType();
+                                    if (flowerType != -1)
+                                    {
+                                        blockTypes[indexAbove] = flowerType;
+                                    }
                                 }
                             }
-                            else if (biomeInstance->shouldPlaceFlower(globalX, globalZ))
+                            // -- PLAINS -- //
+                            else if (biome.type == BiomeTypes::Plains && blockTypes[indexBelow] == GRASS_BLOCK)
                             {
-                                uint8_t flowerType = forestBiome.getRandomFlowerType();
-                                if (flowerType != -1)
+                                if (plainsBiome.shouldPlaceTree(globalX, globalZ))
                                 {
-                                    blockTypes[indexAbove] = flowerType;
+                                    Structure::generateBasePurpleTree(*this, x, terrainHeight + 1, z);
+                                }
+                                else if (plainsBiome.shouldPlaceGrass(globalX, globalZ)) {
+                                    blockTypes[indexAbove] = plainsBiome.getRandomGrassType();
+                                }
+                                else if (plainsBiome.shouldPlaceFlower(globalX, globalZ)) {
+                                    blockTypes[indexAbove] = plainsBiome.getRandomFlowerType();
                                 }
                             }
-                        }
-                        // -- PLAINS -- //
-                        else if (biome.type == BiomeTypes::Plains && blockTypes[indexBelow] == GRASS_BLOCK)
-                        {
-                            if (plainsBiome.shouldPlaceTree(globalX, globalZ)) 
+                            // -- DESERT -- //
+                            else if (biome.type == BiomeTypes::Desert && blockTypes[indexBelow] == SAND)
                             {
-                                Structure::generateBasePurpleTree(*this, x, terrainHeight + 1, z);
+                                if (biomeInstance->shouldPlaceDeadBush(globalX, globalZ))
+                                {
+                                    blockTypes[indexAbove] = DEADBUSH;
+                                }
                             }
-                            else if (plainsBiome.shouldPlaceGrass(globalX, globalZ)) {
-                                blockTypes[indexAbove] = plainsBiome.getRandomGrassType();
-                            }
-                            else if (plainsBiome.shouldPlaceFlower(globalX, globalZ)) {
-                                blockTypes[indexAbove] = plainsBiome.getRandomFlowerType();
-                            }
-                        }
-                        // -- DESERT -- //
-                        else if (biome.type == BiomeTypes::Desert && blockTypes[indexBelow] == SAND)
-                        {
-                            if (biomeInstance->shouldPlaceDeadBush(globalX, globalZ))
-                            {
-                                blockTypes[indexAbove] = DEADBUSH;
-                            }
-                        }
 
-                        break;
+                            break;
+                        }
                     }
                 }
             }
@@ -465,11 +467,14 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         switch (face) {
         case 0: // Back face
 
-            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 0, blockType));
-            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 0, blockType));
-            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 0, blockType));
-            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 0, blockType));
-
+            if (world->getAOState())
+            {
+                ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 0, blockType));
+                ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 0, blockType));
+                ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 0, blockType));
+                ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 0, blockType));
+            }
+            
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::BACK) && 
                 isExposed(x, y + extentY, z, 0, 0, -1, blockType)) {
@@ -499,10 +504,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 1: // Front face
 
-            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 1, blockType));
-            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 1, blockType));
-            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 1, blockType));
-            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 1, blockType));
+            if (world->getAOState())
+            {
+                ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 1, blockType));
+                ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 1, blockType));
+                ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 1, blockType));
+                ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 1, blockType));
+            }
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::FRONT) &&
@@ -533,10 +541,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 2: // Left face
 
-            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
-            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
-            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
-            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
+            if (world->getAOState())
+            {
+                ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
+                ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
+                ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
+                ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
+            }
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::LEFT) &&
@@ -567,10 +578,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 3: // Right face
 
-            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
-            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
-            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
-            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
+            if (world->getAOState())
+            {
+                ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
+                ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
+                ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
+                ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
+            }
 
             while (y + extentY < CHUNK_HEIGHT && blockTypes[getIndex(x, y + extentY, z)] == blockType &&
                 !isFaceProcessed(processed[x][y + extentY][z], FaceFlag::RIGHT) &&
@@ -630,10 +644,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
 
         case 5: // Bottom face
 
-            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, -1, blockType));
-            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, -1, blockType));
-            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, 1, blockType));
-            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, 1, blockType));
+            if (world->getAOState())
+            {
+                ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, -1, blockType));
+                ao[1] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, -1, blockType));
+                ao[2] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, 1, blockType));
+                ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, 1, blockType));
+            }
 
             while (z + extentY < CHUNK_SIZE && blockTypes[getIndex(x, y, z + extentY)] == blockType &&
                 !isFaceProcessed(processed[x][y][z + extentY], FaceFlag::BOTTOM) &&

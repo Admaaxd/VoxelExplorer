@@ -29,6 +29,8 @@ public:
 
 	void queueBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ, uint8_t blockType);
 
+	void updateAllChunkMeshes();
+
 	struct ChunkCoord {
 		int16_t x, z;
 
@@ -51,6 +53,19 @@ public:
 	};
 
 	const std::unordered_map<ChunkCoord, Chunk*, ChunkCoordHash>& getChunks() const { return chunks; }
+
+	bool isAOEnabled = true;
+	bool isFrustumCullingEnabled = true;
+	bool isStructureGenerationEnabled = true;
+
+	bool getAOState() const { return isAOEnabled; }
+	void setAOState(bool enabled);
+
+	bool getFrustumCullingState() const { return isFrustumCullingEnabled; }
+	void setFrustumCullingState(bool enabled);
+	
+	bool getStructureGenerationState() const { return isStructureGenerationEnabled; }
+	void setStructureGenerationState(bool enabled);
 
 private:
 	struct ChunkCoordComparator {
