@@ -81,6 +81,8 @@ void Structure::generateBaseTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) 
 void Structure::generateBaseProceduralTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
     uint8_t treeHeight = 10 + rand() % 6;  // Random trunk height
 
+    std::unordered_map<World::ChunkCoord, std::vector<BlockChange>, World::ChunkCoordHash> chunkBlockChanges;
+
     auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
         int32_t newX = x + offsetX;
         int32_t newY = y + offsetY;
@@ -98,16 +100,9 @@ void Structure::generateBaseProceduralTree(Chunk& chunk, uint8_t x, uint8_t y, u
         int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
         int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
 
-        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+        World::ChunkCoord targetCoord = { static_cast<int16_t>(targetChunkX), static_cast<int16_t>(targetChunkZ) };
 
-        if (targetChunk) {
-            targetChunk->setBlockType(localX, newY, localZ, blockType);
-            targetChunk->needsMeshUpdate = true;
-        }
-        else {
-            // Queue the block change if the chunk isn't loaded
-            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
-        }
+        chunkBlockChanges[targetCoord].push_back({ static_cast<int16_t>(localX), static_cast<int16_t>(newY), static_cast<int16_t>(localZ), blockType });
     };
 
     for (uint8_t i = 0; i < treeHeight - 1; ++i) 
@@ -149,10 +144,25 @@ void Structure::generateBaseProceduralTree(Chunk& chunk, uint8_t x, uint8_t y, u
             }
         }
     }
+
+    for (const auto& [coord, changes] : chunkBlockChanges) {
+        Chunk* targetChunk = chunk.world->getChunk(coord.x, coord.z);
+        if (targetChunk) {
+            for (const auto& change : changes) {
+                targetChunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
+            }
+            targetChunk->needsMeshUpdate = true;
+        }
+        else {
+            chunk.world->queueBlockChanges(coord.x, coord.z, changes);
+        }
+    }
 }
 
 void Structure::generateProceduralTreeOrangeLeaves(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
     uint8_t treeHeight = 10 + rand() % 6;
+
+    std::unordered_map<World::ChunkCoord, std::vector<BlockChange>, World::ChunkCoordHash> chunkBlockChanges;
 
     auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
         int32_t newX = x + offsetX;
@@ -171,15 +181,9 @@ void Structure::generateProceduralTreeOrangeLeaves(Chunk& chunk, uint8_t x, uint
         int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
         int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
 
-        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+        World::ChunkCoord targetCoord = { static_cast<int16_t>(targetChunkX), static_cast<int16_t>(targetChunkZ) };
 
-        if (targetChunk) {
-            targetChunk->setBlockType(localX, newY, localZ, blockType);
-            targetChunk->needsMeshUpdate = true;
-        }
-        else {
-            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
-        }
+        chunkBlockChanges[targetCoord].push_back({ static_cast<int16_t>(localX), static_cast<int16_t>(newY), static_cast<int16_t>(localZ), blockType });
     };
 
     for (uint8_t i = 0; i < treeHeight - 1; ++i) {
@@ -229,10 +233,25 @@ void Structure::generateProceduralTreeOrangeLeaves(Chunk& chunk, uint8_t x, uint
             }
         }
     }
+
+    for (const auto& [coord, changes] : chunkBlockChanges) {
+        Chunk* targetChunk = chunk.world->getChunk(coord.x, coord.z);
+        if (targetChunk) {
+            for (const auto& change : changes) {
+                targetChunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
+            }
+            targetChunk->needsMeshUpdate = true;
+        }
+        else {
+            chunk.world->queueBlockChanges(coord.x, coord.z, changes);
+        }
+    }
 }
 
 void Structure::generateProceduralTreeYellowLeaves(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z) {
     uint8_t treeHeight = 10 + rand() % 6;
+
+    std::unordered_map<World::ChunkCoord, std::vector<BlockChange>, World::ChunkCoordHash> chunkBlockChanges;
 
     auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
         int32_t newX = x + offsetX;
@@ -251,15 +270,9 @@ void Structure::generateProceduralTreeYellowLeaves(Chunk& chunk, uint8_t x, uint
         int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
         int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
 
-        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+        World::ChunkCoord targetCoord = { static_cast<int16_t>(targetChunkX), static_cast<int16_t>(targetChunkZ) };
 
-        if (targetChunk) {
-            targetChunk->setBlockType(localX, newY, localZ, blockType);
-            targetChunk->needsMeshUpdate = true;
-        }
-        else {
-            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
-        }
+        chunkBlockChanges[targetCoord].push_back({ static_cast<int16_t>(localX), static_cast<int16_t>(newY), static_cast<int16_t>(localZ), blockType });
     };
 
     for (uint8_t i = 0; i < treeHeight - 1; ++i) {
@@ -309,12 +322,27 @@ void Structure::generateProceduralTreeYellowLeaves(Chunk& chunk, uint8_t x, uint
             }
         }
     }
+
+    for (const auto& [coord, changes] : chunkBlockChanges) {
+        Chunk* targetChunk = chunk.world->getChunk(coord.x, coord.z);
+        if (targetChunk) {
+            for (const auto& change : changes) {
+                targetChunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
+            }
+            targetChunk->needsMeshUpdate = true;
+        }
+        else {
+            chunk.world->queueBlockChanges(coord.x, coord.z, changes);
+        }
+    }
 }
 
 void Structure::generateBasePurpleTree(Chunk& chunk, uint8_t x, uint8_t y, uint8_t z)
 {
     uint8_t trunkHeight = 3 + rand() % 2;
     uint8_t leafHeight = 2 + rand() % 2;
+
+    std::unordered_map<World::ChunkCoord, std::vector<BlockChange>, World::ChunkCoordHash> chunkBlockChanges;
 
     auto setLocalBlockType = [&](GLint offsetX, GLint offsetY, GLint offsetZ, uint8_t blockType) {
         int32_t newX = x + offsetX;
@@ -333,15 +361,9 @@ void Structure::generateBasePurpleTree(Chunk& chunk, uint8_t x, uint8_t y, uint8
         int32_t localX = globalX - targetChunkX * CHUNK_SIZE;
         int32_t localZ = globalZ - targetChunkZ * CHUNK_SIZE;
 
-        Chunk* targetChunk = chunk.world->getChunk(targetChunkX, targetChunkZ);
+        World::ChunkCoord targetCoord = { static_cast<int16_t>(targetChunkX), static_cast<int16_t>(targetChunkZ) };
 
-        if (targetChunk) {
-            targetChunk->setBlockType(localX, newY, localZ, blockType);
-            targetChunk->needsMeshUpdate = true;
-        }
-        else {
-            chunk.world->queueBlockChange(targetChunkX, targetChunkZ, localX, newY, localZ, blockType);
-        }
+        chunkBlockChanges[targetCoord].push_back({ static_cast<int16_t>(localX), static_cast<int16_t>(newY), static_cast<int16_t>(localZ), blockType });
     };
 
     // Generate trunk
@@ -370,5 +392,18 @@ void Structure::generateBasePurpleTree(Chunk& chunk, uint8_t x, uint8_t y, uint8
         int8_t offsetZ = (i % 2 == 1) ? (1 + rand() % 2) : 0;
 
         setLocalBlockType(offsetX, branchStart, offsetZ, OAK_LEAF_PURPLE);
+    }
+
+    for (const auto& [coord, changes] : chunkBlockChanges) {
+        Chunk* targetChunk = chunk.world->getChunk(coord.x, coord.z);
+        if (targetChunk) {
+            for (const auto& change : changes) {
+                targetChunk->setBlockType(change.localX, change.localY, change.localZ, change.blockType);
+            }
+            targetChunk->needsMeshUpdate = true;
+        }
+        else {
+            chunk.world->queueBlockChanges(coord.x, coord.z, changes);
+        }
     }
 }

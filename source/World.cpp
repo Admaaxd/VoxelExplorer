@@ -208,10 +208,11 @@ void World::notifyNeighbors(Chunk* chunk) {
 	}
 }
 
-void World::queueBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ, uint8_t blockType) {
+void World::queueBlockChanges(int16_t chunkX, int16_t chunkZ, const std::vector<BlockChange>& changes) {
 	std::lock_guard<std::mutex> lock(queuedBlockChangesMutex);
 	ChunkCoord coord = { chunkX, chunkZ };
-	queuedBlockChanges[coord].push_back({ localX, localY, localZ, blockType });
+	auto& existingChanges = queuedBlockChanges[coord];
+	existingChanges.insert(existingChanges.end(), changes.begin(), changes.end());
 }
 
 std::vector<BlockChange> World::getQueuedBlockChanges(int16_t chunkX, int16_t chunkZ) {

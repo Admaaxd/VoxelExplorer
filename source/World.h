@@ -1,11 +1,11 @@
 #pragma once
 
-#include "Chunk.h"
-#include "ThreadPool.h"
 #include <unordered_map>
 #include <queue>
 #include <map>
 #include <unordered_set>
+#include "Chunk.h"
+#include "ThreadPool.h"
 
 struct BlockChange {
 	int16_t localX, localY, localZ;
@@ -27,7 +27,7 @@ public:
 
 	void setBlock(int16_t x, int16_t y, int16_t z, int8_t type);
 
-	void queueBlockChange(int16_t chunkX, int16_t chunkZ, int16_t localX, int16_t localY, int16_t localZ, uint8_t blockType);
+	void queueBlockChanges(int16_t chunkX, int16_t chunkZ, const std::vector<BlockChange>& changes);
 
 	void updateAllChunkMeshes();
 

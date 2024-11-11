@@ -85,7 +85,7 @@ int main()
 	main::initializeImGui(window);
 
 	LoadingScreen loadingScreen(SCR_WIDTH, SCR_HEIGHT);
-	//loadingScreen.display(window, world, frustum, camera.getPosition());
+	loadingScreen.display(window, world, frustum, camera.getPosition());
 
 	glm::vec3 spawnPosition = camera.getPosition();
 	spawnPosition.y = world.getTerrainHeightAt(spawnPosition.x, spawnPosition.z);
