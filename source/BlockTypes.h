@@ -23,7 +23,8 @@ enum BlockType {
 	OAK_LEAF_YELLOW,
 	DEADBUSH,
 	OAK_LEAF_PURPLE,
-	SNOW
+	SNOW,
+	TORCH
 };
 
 enum FaceType {

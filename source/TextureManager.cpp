@@ -102,6 +102,8 @@ GLuint TextureManager::getInventoryTextureID(GLint blockType) const
         return inventoryTextureIDs[23];
     case SNOW:
         return inventoryTextureIDs[24];
+    case TORCH:
+        return inventoryTextureIDs[25];
     default:
         return 0;
     }

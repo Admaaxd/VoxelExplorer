@@ -70,6 +70,7 @@ private:
 	GLint getTextureLayer(int8_t blockType, int8_t face);
 
 	void addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
+	void addTorch(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType);
 
 	Biomes determineBiomeType(GLint x, GLint z);
 	const BiomeData* selectBiome(GLfloat noiseValue);

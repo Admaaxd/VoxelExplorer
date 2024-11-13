@@ -346,7 +346,7 @@ inline bool Chunk::isTransparent(GLint blockType)
 {
     return blockType == -1 || blockType == WATER || blockType == OAK_LEAF || blockType == OAK_LEAF_ORANGE || blockType == OAK_LEAF_YELLOW || blockType == GLASS ||
         blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5 || blockType == GRASS1 || blockType == GRASS2 || 
-        blockType == GRASS3 || blockType == DEADBUSH || blockType == OAK_LEAF_PURPLE;
+        blockType == GRASS3 || blockType == DEADBUSH || blockType == OAK_LEAF_PURPLE || blockType == TORCH;
 }
 
 void Chunk::recalculateSunlightColumn(GLint x, GLint z) {
@@ -695,6 +695,13 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
                     continue;
                 }
 
+                if (blockTypes[index] == TORCH)
+                {
+                    // Add torch mesh
+                    addTorch(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockTypes[index]);
+                    continue;
+                }
+
                 // Water block
                 if (blockType == WATER) {
                     uint8_t lightLevel = lightLevels[index];
@@ -792,8 +799,131 @@ GLint Chunk::getTextureLayer(int8_t blockType, int8_t face)
     case OAK_LEAF_PURPLE: return 23;
 
     case SNOW: return 24;
+
+    case TORCH: 
+        if (face == TOP || face == BOTTOM) return 26;
+        else return 25;
     
     default: return DIRT;
+    }
+}
+
+void Chunk::addTorch(std::vector<GLfloat>& vertices, std::vector<GLuint>& indices, GLint& vertexOffset, GLint x, GLint y, GLint z, uint8_t lightLevel, GLint blockType)
+{
+    GLfloat torchHeight = 1.5f;
+
+    GLfloat y0 = y;
+    GLfloat y1 = y + torchHeight;
+
+    GLfloat frontWidth = 1.2f;
+    GLfloat backWidth = 1.2f;
+    GLfloat leftDepth = 1.2f;
+    GLfloat rightDepth = 1.2f;
+    GLfloat topWidth = 0.145f;
+
+    GLfloat xCenter = x + 0.5f;
+    GLfloat zCenter = z + 0.5f;
+
+    GLfloat frontX0 = xCenter - frontWidth / 2.0f;
+    GLfloat frontX1 = xCenter + frontWidth / 2.0f;
+    GLfloat frontZ = zCenter - 0.07f;
+
+    GLfloat backX0 = xCenter - backWidth / 2.0f;
+    GLfloat backX1 = xCenter + backWidth / 2.0f;
+    GLfloat backZ = zCenter + 0.07f;
+
+    GLfloat leftX = xCenter - 0.07f;
+    GLfloat rightX = xCenter + 0.07f;
+    GLfloat leftZ0 = zCenter - leftDepth / 2.0f;
+    GLfloat leftZ1 = zCenter + leftDepth / 2.0f;
+    GLfloat rightZ0 = zCenter - rightDepth / 2.0f;
+    GLfloat rightZ1 = zCenter + rightDepth / 2.0f;
+
+    GLfloat topX0 = xCenter - topWidth / 2.0f;
+    GLfloat topX1 = xCenter + topWidth / 2.0f;
+    GLfloat topZ0 = zCenter - topWidth / 2.0f;
+    GLfloat topZ1 = zCenter + topWidth / 2.0f;
+
+    GLfloat texCoords[4][2] = {
+        { 0.0f, 0.0f },
+        { 1.0f, 0.0f },
+        { 1.0f, 1.0f },
+        { 0.0f, 1.0f }
+    };
+
+    GLfloat torchLightLevel = 1.0f;
+    GLfloat torchAO = 1.0f;
+
+    GLfloat normals[5][3] = {
+        {  0.0f,  0.0f, -1.0f }, // Front face
+        {  0.0f,  0.0f,  1.0f }, // Back face
+        { -1.0f,  0.0f,  0.0f }, // Left face
+        {  1.0f,  0.0f,  0.0f }, // Right face
+        {  0.0f,  1.0f,  0.0f }  // Top face only
+    };
+
+    GLfloat positions[5][4][3] = {
+        // Front face
+        {
+            { frontX0, y0, frontZ },
+            { frontX1, y0, frontZ },
+            { frontX1, y1, frontZ },
+            { frontX0, y1, frontZ }
+        },
+        // Back face
+        {
+            { backX1, y0, backZ },
+            { backX0, y0, backZ },
+            { backX0, y1, backZ },
+            { backX1, y1, backZ }
+        },
+        // Left face
+        {
+            { leftX, y0, leftZ1 },
+            { leftX, y0, leftZ0 },
+            { leftX, y1, leftZ0 },
+            { leftX, y1, leftZ1 }
+        },
+        // Right face
+        {
+            { rightX, y0, rightZ0 },
+            { rightX, y0, rightZ1 },
+            { rightX, y1, rightZ1 },
+            { rightX, y1, rightZ0 }
+        },
+        // Top face
+        {
+            { topX0, y1 - 0.566f, topZ0 },
+            { topX1, y1 - 0.566f, topZ0 },
+            { topX1, y1 - 0.566f, topZ1 },
+            { topX0, y1 - 0.566f, topZ1 }
+        }
+    };
+
+    int8_t faces[5] = { 0, 1, 2, 3, TOP };
+
+    for (uint8_t face = 0; face < 5; ++face)
+    {
+        GLint textureLayer = getTextureLayer(blockType, faces[face]);
+
+        for (uint8_t i = 0; i < 4; ++i)
+        {
+            vertices.insert(vertices.end(), {
+                positions[face][i][0], positions[face][i][1], positions[face][i][2],  // Position
+                texCoords[i][0], texCoords[i][1],                                     // Texture coordinates
+                (GLfloat)textureLayer,                                                // Texture layer
+                normals[face][0], normals[face][1], normals[face][2],                 // Normal
+                torchLightLevel,                                                      // Light level
+                torchAO                                                               // Ambient occlusion
+            });
+        }
+
+        indices.insert(indices.end(), {
+            static_cast<GLuint>(vertexOffset),     static_cast<GLuint>(vertexOffset) + 1, static_cast<GLuint>(vertexOffset) + 2,
+            static_cast<GLuint>(vertexOffset),     static_cast<GLuint>(vertexOffset) + 2, static_cast<GLuint>(vertexOffset) + 3
+        });
+
+        vertexOffset += 4;
     }
 }
 
