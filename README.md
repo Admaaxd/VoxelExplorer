@@ -29,3 +29,22 @@ This project is a voxel-based 3D game, similar to Minecraft, developed as part o
 - [x] Grass and flowers
 - [ ] Torchlight
 - [ ] Save & loading
+
+## How to build it using CMake
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Admaaxd/VoxelExplorer.git
+   cd VoxelExplorer
+
+2. **Build the project**
+   ```bash
+   mkdir build
+   cd build
+   cmake -DCMAKE_BUILD_TYPE=Debug ..
+   cmake --build .
+   
+3. **Run the program**
+   ```bash
+   cd Debug
+   VoxelExplorer.exe
