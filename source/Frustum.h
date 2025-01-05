@@ -1,7 +1,7 @@
 #pragma once
 
 #include <array>
-#include <glm/glm.hpp>
+#include <glm.hpp>
 #include <iostream>
 
 class Frustum {

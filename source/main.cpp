@@ -63,11 +63,11 @@ int main()
 	glfwSetCursorPosCallback(window, main::mouse_callback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-	shader mainShader("shaders/main.vs", "shaders/main.fs");
-	shader meshingShader("shaders/meshing.vs", "shaders/meshing.fs");
-	shader crosshairShader("shaders/crosshair.vs", "shaders/crosshair.fs");
+	shader mainShader("main.vs", "main.fs");
+	shader meshingShader("meshing.vs", "meshing.fs");
+	shader crosshairShader("crosshair.vs", "crosshair.fs");
 	SkyboxRenderer skybox(dayFaces, nightFaces ,"skybox/sun.png", "skybox/moon.png");
-	shader waterShader("shaders/water.vs", "shaders/water.fs");
+	shader waterShader("water.vs", "water.fs");
 	Crosshair crosshair;
 	crosshair.initialize();
 	BlockOutline blockOutline;

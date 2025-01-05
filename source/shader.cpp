@@ -4,9 +4,6 @@
 
 #include <glad/glad.h>
 
-#include <glm/glm.hpp>
-
-
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -16,6 +13,10 @@ GLuint ID;
 
 shader::shader(const char* vertexPath, const char* fragmentPath)
 {
+    std::string executableDir = getExecutableDir();
+    std::string vertexFullPath = executableDir + "/shaders/" + vertexPath;
+    std::string fragmentFullPath = executableDir + "/shaders/" + fragmentPath;
+
     std::string vertexCode;
     std::string fragmentCode;
     std::ifstream vShaderFile;
@@ -26,8 +27,8 @@ shader::shader(const char* vertexPath, const char* fragmentPath)
     try
     {
         // open files
-        vShaderFile.open(vertexPath);
-        fShaderFile.open(fragmentPath);
+        vShaderFile.open(vertexFullPath);
+        fShaderFile.open(fragmentFullPath);
         std::stringstream vShaderStream, fShaderStream;
         // read file's buffer contents into streams
         vShaderStream << vShaderFile.rdbuf();
@@ -165,4 +166,9 @@ void shader::setMat3(const std::string& name, const glm::mat3& mat) const
 void shader::setMat4(const std::string& name, const glm::mat4& mat) const
 {
     glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+}
+
+std::string shader::getExecutableDir()
+{
+    return std::filesystem::current_path().string();
 }

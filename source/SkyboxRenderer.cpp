@@ -1,7 +1,7 @@
 #include "SkyboxRenderer.h"
 
 SkyboxRenderer::SkyboxRenderer(const std::vector<std::string>& dayFaces, const std::vector<std::string>& nightFaces, const std::string& sunTexturePath, const std::string& moonTexturePath)
-    : skyboxShader("shaders/skybox.vs", "shaders/skybox.fs"), sunMoonShader("shaders/sun-moon.vs", "shaders/sun-moon.fs"),
+    : skyboxShader("skybox.vs", "skybox.fs"), sunMoonShader("sun-moon.vs", "sun-moon.fs"),
     orbitCenter(glm::vec3(0.0f, 0.0f, 0.0f)), orbitRadius(300.0f), orbitSpeed(0.01f), currentAngle(0.0f)
 {
     dayCubemapTexture = loadCubemap(dayFaces);

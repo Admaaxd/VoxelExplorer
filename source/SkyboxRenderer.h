@@ -1,11 +1,11 @@
 #ifndef SKYBOX_RENDERER_H
 #define SKYBOX_RENDERER_H
 
-#include <stb/stb_image.h>
+#include "stb_image.h"
 #include <iostream>
 #include <glad/glad.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
 #include <GLFW/glfw3.h>
 #include <vector>
 #include <string>

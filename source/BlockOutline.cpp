@@ -1,7 +1,7 @@
 #include "BlockOutline.h"
 
 BlockOutline::BlockOutline()
-    : outlinedBlockShader("shaders/blockOutlineShader.vs", "shaders/blockOutlineShader.fs")
+    : outlinedBlockShader("blockOutlineShader.vs", "blockOutlineShader.fs")
 {
     // Vertices for a cube outline
     std::vector<glm::vec3> vertices = {
