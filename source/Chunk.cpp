@@ -935,16 +935,16 @@ void Chunk::addGrassPlant(std::vector<GLfloat>& vertices, std::vector<GLuint>& i
 
     GLfloat positions[2][4][3] = {
         {   // First quad
-            { centerX - size, y, centerZ - size },
-            { centerX + size, y, centerZ + size },
-            { centerX + size, y + 1.0f, centerZ + size },
-            { centerX - size, y + 1.0f, centerZ - size }
+            { static_cast<GLfloat>(centerX - size), static_cast<GLfloat>(y), static_cast<GLfloat>(centerZ - size) },
+            { static_cast<GLfloat>(centerX + size), static_cast<GLfloat>(y), static_cast<GLfloat>(centerZ + size) },
+            { static_cast<GLfloat>(centerX + size), static_cast<GLfloat>(y + 1.0f), static_cast<GLfloat>(centerZ + size) },
+            { static_cast<GLfloat>(centerX - size), static_cast<GLfloat>(y + 1.0f), static_cast<GLfloat>(centerZ - size) }
         },
         {   // Second quad
-            { centerX + size, y, centerZ - size },
-            { centerX - size, y, centerZ + size },
-            { centerX - size, y + 1.0f, centerZ + size },
-            { centerX + size, y + 1.0f, centerZ - size }
+            { static_cast<GLfloat>(centerX + size), static_cast<GLfloat>(y), static_cast<GLfloat>(centerZ - size) },
+            { static_cast<GLfloat>(centerX - size), static_cast<GLfloat>(y), static_cast<GLfloat>(centerZ + size) },
+            { static_cast<GLfloat>(centerX - size), static_cast<GLfloat>(y + 1.0f), static_cast<GLfloat>(centerZ + size) },
+            { static_cast<GLfloat>(centerX + size), static_cast<GLfloat>(y + 1.0f), static_cast<GLfloat>(centerZ - size) }
         }
     };
 

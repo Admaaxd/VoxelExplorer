@@ -184,7 +184,7 @@ void World::processChunkLoadQueue(uint8_t maxChunksToLoad, uint16_t delay)
 }
 
 void World::addChunk(Chunk* chunk) {
-	ChunkCoord coord = { chunk->getChunkX(), chunk->getChunkZ() };
+	ChunkCoord coord = { static_cast<int16_t>(chunk->getChunkX()), static_cast<int16_t>(chunk->getChunkZ()) };
 	{
 		std::lock_guard<std::mutex> lock(chunksMutex);
 		chunks[coord] = chunk;

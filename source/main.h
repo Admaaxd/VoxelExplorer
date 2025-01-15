@@ -1,5 +1,9 @@
 #pragma once
 
+#include <windows.h>
+#include <psapi.h>
+#include <iostream>
+
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -9,9 +13,6 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 #include <gtx/string_cast.hpp>
-#include <windows.h>
-#include <psapi.h>
-#include <iostream>
 
 #include "shader.h"
 #include "Camera.h"

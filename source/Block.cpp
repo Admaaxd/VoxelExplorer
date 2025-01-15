@@ -20,8 +20,8 @@ void Block::addBackFace(std::vector<GLfloat>& vertices, std::vector<GLuint>& ind
 
 	std::array<uint16_t, 6> faceIndices = 
 	{
-		vertexOffset,		vertexOffset + 1,	vertexOffset + 2,
-		vertexOffset +2,	vertexOffset + 3,	vertexOffset
+		static_cast<uint16_t>(vertexOffset),		static_cast<uint16_t>(vertexOffset) + 1,	static_cast<uint16_t>(vertexOffset) + 2,
+		static_cast<uint16_t>(vertexOffset) +2,		static_cast<uint16_t>(vertexOffset) + 3,	static_cast<uint16_t>(vertexOffset)
 	};
 
 	indices.insert(indices.end(), faceIndices.begin(), faceIndices.end());
@@ -48,8 +48,8 @@ void Block::addFrontFace(std::vector<GLfloat>& vertices, std::vector<GLuint>& in
 
 	std::array<uint16_t, 6> faceIndices = 
 	{
-		vertexOffset,		vertexOffset + 1,	vertexOffset + 2,
-		vertexOffset + 2,	vertexOffset + 3,	vertexOffset
+		static_cast<uint16_t>(vertexOffset),		static_cast<uint16_t>(vertexOffset) + 1,	static_cast<uint16_t>(vertexOffset) + 2,
+		static_cast<uint16_t>(vertexOffset) + 2,	static_cast<uint16_t>(vertexOffset) + 3,	static_cast<uint16_t>(vertexOffset)
 	};
 
 	indices.insert(indices.end(), faceIndices.begin(), faceIndices.end());
@@ -77,8 +77,8 @@ void Block::addTopFace(std::vector<GLfloat>& vertices, std::vector<GLuint>& indi
 
 	std::array<uint16_t, 6> faceIndices = 
 	{
-		vertexOffset,		vertexOffset + 1,	vertexOffset + 2,
-		vertexOffset + 2,	vertexOffset + 3,	vertexOffset
+		static_cast<uint16_t>(vertexOffset),		static_cast<uint16_t>(vertexOffset) + 1,	static_cast<uint16_t>(vertexOffset) + 2,
+		static_cast<uint16_t>(vertexOffset) + 2,	static_cast<uint16_t>(vertexOffset) + 3,	static_cast<uint16_t>(vertexOffset)
 	};
 
 	indices.insert(indices.end(), faceIndices.begin(), faceIndices.end());
@@ -107,8 +107,8 @@ void Block::addBottomFace(std::vector<GLfloat>& vertices, std::vector<GLuint>& i
 
 	std::array<uint16_t, 6> faceIndices = 
 	{
-		vertexOffset,		vertexOffset + 1,	vertexOffset + 2,
-		vertexOffset + 2,	vertexOffset + 3,	vertexOffset
+		static_cast<uint16_t>(vertexOffset),		static_cast<uint16_t>(vertexOffset) + 1,	static_cast<uint16_t>(vertexOffset) + 2,
+		static_cast<uint16_t>(vertexOffset) + 2,	static_cast<uint16_t>(vertexOffset) + 3,	static_cast<uint16_t>(vertexOffset)
 	};
 
 	indices.insert(indices.end(), faceIndices.begin(), faceIndices.end());
@@ -137,8 +137,8 @@ void Block::addLeftFace(std::vector<GLfloat>& vertices, std::vector<GLuint>& ind
 
 	std::array<uint16_t, 6> faceIndices = 
 	{
-		vertexOffset,		vertexOffset + 1,	vertexOffset + 2,
-		vertexOffset + 2,	vertexOffset + 3,	vertexOffset
+		static_cast<uint16_t>(vertexOffset),		static_cast<uint16_t>(vertexOffset) + 1,	static_cast<uint16_t>(vertexOffset) + 2,
+		static_cast<uint16_t>(vertexOffset) + 2,	static_cast<uint16_t>(vertexOffset) + 3,	static_cast<uint16_t>(vertexOffset)
 	};
 
 	indices.insert(indices.end(), faceIndices.begin(), faceIndices.end());
@@ -167,8 +167,8 @@ void Block::addRightFace(std::vector<GLfloat>& vertices, std::vector<GLuint>& in
 
 	std::array<uint16_t, 6> faceIndices = 
 	{
-		vertexOffset,		vertexOffset + 1,	vertexOffset + 2,
-		vertexOffset + 2,	vertexOffset + 3,	vertexOffset
+		static_cast<uint16_t>(vertexOffset),		static_cast<uint16_t>(vertexOffset) + 1,	static_cast<uint16_t>(vertexOffset) + 2,
+		static_cast<uint16_t>(vertexOffset) + 2,	static_cast<uint16_t>(vertexOffset) + 3,	static_cast<uint16_t>(vertexOffset)
 	};
 
 	indices.insert(indices.end(), faceIndices.begin(), faceIndices.end());
