@@ -43,7 +43,13 @@ This project is a voxel-based 3D game, similar to Minecraft, developed as part o
    cd build
    cmake -DCMAKE_BUILD_TYPE=Debug ..
    cmake --build .
-   
+   ```
+
+    **If you want to build it in Release mode:**  
+      ```bash
+      cmake --build . --config Release
+      ```
+
 3. **Run the program**
    ```bash
    cd Debug
