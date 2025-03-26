@@ -57,6 +57,7 @@ public:
 	bool isAOEnabled = true;
 	bool isFrustumCullingEnabled = true;
 	bool isStructureGenerationEnabled = true;
+	bool isGreedyMeshingEnabled = true;
 
 	bool getAOState() const { return isAOEnabled; }
 	void setAOState(bool enabled);
@@ -66,6 +67,9 @@ public:
 	
 	bool getStructureGenerationState() const { return isStructureGenerationEnabled; }
 	void setStructureGenerationState(bool enabled);
+
+	bool getIsGreedyMeshingEnabled() const { return isGreedyMeshingEnabled; }
+	void setGreedyMeshingEnabled(bool enabled);
 
 private:
 	struct ChunkCoordComparator {

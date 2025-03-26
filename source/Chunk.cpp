@@ -455,6 +455,125 @@ void Chunk::generateMesh(const std::vector<GLint>& blockTypes)
         return glm::clamp(baseAO, 0.90f, 1.0f);
     };
 
+    if (!world->getIsGreedyMeshingEnabled()) {
+        for (int16_t x = 0; x < CHUNK_SIZE; ++x) {
+            for (int16_t y = 0; y < CHUNK_HEIGHT; ++y) {
+                for (int16_t z = 0; z < CHUNK_SIZE; ++z) {
+                    GLint index = getIndex(x, y, z);
+                    GLint blockType = blockTypes[index];
+                    if (blockType == -1) continue;
+
+                    // Grass & flowers
+                    if (blockType == FLOWER1 || blockType == FLOWER2 || blockType == FLOWER3 || blockType == FLOWER4 || blockType == FLOWER5
+                        || blockType == GRASS1 || blockType == GRASS2 || blockType == GRASS3 || blockType == DEADBUSH) {
+                        addGrassPlant(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockType);
+                        continue;
+                    }
+
+                    // Torch
+                    if (blockType == TORCH) {
+                        addTorch(vertices, indices, vertexOffset, chunkX * CHUNK_SIZE + x, y, chunkZ * CHUNK_SIZE + z, lightLevels[index], blockType);
+                        continue;
+                    }
+
+                    // Water
+                    if (blockType == WATER) {
+                        uint8_t lightLevel = lightLevels[index];
+                        GLint textureLayer = getTextureLayer(blockType, 0);
+                        GLfloat ao[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+                        int16_t worldX = chunkX * CHUNK_SIZE + x;
+                        int16_t worldZ = chunkZ * CHUNK_SIZE + z;
+
+                        if (isExposed(x, y, z, 0, 0, -1, blockType)) Block::addBackFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                        if (isExposed(x, y, z, 0, 0, 1, blockType)) Block::addFrontFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                        if (isExposed(x, y, z, -1, 0, 0, blockType)) Block::addLeftFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                        if (isExposed(x, y, z, 1, 0, 0, blockType)) Block::addRightFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                        if (isExposed(x, y, z, 0, 1, 0, blockType)) {
+                            GLfloat waterY = y + 0.9f;
+                            Block::addTopFace(waterVertices, waterIndices, waterVertexOffset, worldX, waterY, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                        }
+                        if (isExposed(x, y, z, 0, -1, 0, blockType)) Block::addBottomFace(waterVertices, waterIndices, waterVertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                        continue;
+                    }
+
+                    GLint textureLayer;
+                    GLfloat ao[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+                    uint8_t lightLevel = lightLevels[index];
+                    int16_t worldX = chunkX * CHUNK_SIZE + x;
+                    int16_t worldZ = chunkZ * CHUNK_SIZE + z;
+
+                    // Back
+                    if (isExposed(x, y, z, 0, 0, -1, blockType)) {
+                        textureLayer = getTextureLayer(blockType, 0);
+                        if (world->getAOState()) {
+                            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 0, blockType));
+                            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 0, blockType));
+                            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 0, blockType));
+                            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 0, blockType));
+                        }
+                        Block::addBackFace(vertices, indices, vertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+
+                    // Front
+                    if (isExposed(x, y, z, 0, 0, 1, blockType)) {
+                        textureLayer = getTextureLayer(blockType, 1);
+                        if (world->getAOState()) {
+                            ao[0] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, -1, 1, 1, blockType));
+                            ao[1] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 1, 1, 1, blockType));
+                            ao[2] = calculateAO(isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, -1, -1, 1, blockType));
+                            ao[3] = calculateAO(isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 1, -1, 1, blockType));
+                        }
+                        Block::addFrontFace(vertices, indices, vertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+
+                    // Left
+                    if (isExposed(x, y, z, -1, 0, 0, blockType)) {
+                        textureLayer = getTextureLayer(blockType, 2);
+                        if (world->getAOState()) {
+                            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
+                            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
+                            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
+                            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
+                        }
+                        Block::addLeftFace(vertices, indices, vertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+
+                    // Right
+                    if (isExposed(x, y, z, 1, 0, 0, blockType)) {
+                        textureLayer = getTextureLayer(blockType, 3);
+                        if (world->getAOState()) {
+                            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, -1, blockType));
+                            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, 1, 0, blockType), isExposed(x, y, z, 0, 1, 1, blockType));
+                            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, -1, blockType));
+                            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 0, -1, 0, blockType), isExposed(x, y, z, 0, -1, 1, blockType));
+                        }
+                        Block::addRightFace(vertices, indices, vertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+
+                    // Top
+                    if (isExposed(x, y, z, 0, 1, 0, blockType)) {
+                        textureLayer = getTextureLayer(blockType, 4);
+                        Block::addTopFace(vertices, indices, vertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+
+                    // Bottom
+                    if (y > 0 && isExposed(x, y, z, 0, -1, 0, blockType)) {
+                        textureLayer = getTextureLayer(blockType, 5);
+                        if (world->getAOState()) {
+                            ao[0] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, -1, blockType));
+                            ao[1] = calculateAO(isExposed(x, y, z, 0, 0, -1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, -1, blockType));
+                            ao[2] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, -1, 0, 0, blockType), isExposed(x, y, z, -1, 0, 1, blockType));
+                            ao[3] = calculateAO(isExposed(x, y, z, 0, 0, 1, blockType), isExposed(x, y, z, 1, 0, 0, blockType), isExposed(x, y, z, 1, 0, 1, blockType));
+                        }
+                        Block::addBottomFace(vertices, indices, vertexOffset, worldX, y, worldZ, 1, 1, textureLayer, lightLevel, ao);
+                    }
+                }
+            }
+        }
+        return;
+    }
+
     auto processFace = [&](GLint x, GLint y, GLint z, int8_t face) {
         uint16_t extentX = 1;
         uint16_t extentY = 1;

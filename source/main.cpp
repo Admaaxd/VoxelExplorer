@@ -442,6 +442,13 @@ void main::renderImGui(GLFWwindow* window, const glm::vec3& playerPosition, Play
 	ImGui::Separator();
 	ImGui::Checkbox("Enable Mesh Outline", &isOutlineEnabled);
 
+	ImGui::Separator();
+	bool isGreedyMeshingEnabled = world.getIsGreedyMeshingEnabled();
+	if (ImGui::Checkbox("Enable Greedy meshing", &isGreedyMeshingEnabled))
+	{
+		world.setGreedyMeshingEnabled(isGreedyMeshingEnabled);
+	}
+
 	// Inventory Hotbar visiblity Toggle
 	ImGui::Separator();
 	ImGui::Checkbox("Show Inventory Hotbar", &isHotbarVisible);

@@ -388,3 +388,9 @@ void World::setFrustumCullingState(bool enabled) {
 void World::setStructureGenerationState(bool enabled) {
 	isStructureGenerationEnabled = enabled;
 }
+
+void World::setGreedyMeshingEnabled(bool enabled)
+{
+	isGreedyMeshingEnabled = enabled;
+	updateAllChunkMeshes();
+}
